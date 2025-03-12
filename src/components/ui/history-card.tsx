@@ -24,7 +24,7 @@ export function HistoryCard({
   return (
     <div className="py-4 border-b border-gray-100 last:border-b-0">
       <div className="flex items-start">
-        <div className="flex-shrink-0 mr-3">
+        <div className="flex-shrink-0 px-3">
           {icon}
         </div>
         <div className="flex-1 min-w-0">
@@ -62,7 +62,7 @@ export function HistoryCard({
             onClick={onDelete}
             className="p-1 text-gray-400 hover:text-gray-600 rounded"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4 mr-2" />
           </button>
         </div>
       </div>

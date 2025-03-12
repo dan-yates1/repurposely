@@ -28,6 +28,7 @@ export default function Create() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [contentSource, setContentSource] = useState('text');
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const sourceTabs = [
     { id: 'text', label: 'Text Input' },
@@ -48,11 +49,57 @@ export default function Create() {
     checkUser();
   }, [router]);
 
+  const handleTemplateSelect = (template: string) => {
+    setSelectedTemplate(template);
+    setContentType(template);
+    
+    // Set default values based on template
+    switch (template) {
+      case 'twitter':
+        setTone('conversational');
+        setContentLength('short');
+        setTargetAudience('general');
+        break;
+      case 'linkedin':
+        setTone('professional');
+        setContentLength('medium');
+        setTargetAudience('professionals');
+        break;
+      case 'blog':
+        setTone('informative');
+        setContentLength('long');
+        setTargetAudience('readers');
+        break;
+      case 'instagram':
+        setTone('casual');
+        setContentLength('medium');
+        setTargetAudience('followers');
+        break;
+      case 'facebook':
+        setTone('friendly');
+        setContentLength('medium');
+        setTargetAudience('friends');
+        break;
+      case 'youtube':
+        setTone('engaging');
+        setContentLength('long');
+        setTargetAudience('viewers');
+        break;
+    }
+    
+    toast.success(`${template.charAt(0).toUpperCase() + template.slice(1)} template selected`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!originalContent.trim()) {
       toast.error('Please enter some content to repurpose');
+      return;
+    }
+
+    if (!selectedTemplate) {
+      toast.error('Please select a template first');
       return;
     }
 
@@ -67,14 +114,73 @@ export default function Create() {
       
       switch (contentType) {
         case 'twitter':
-          processed += `${originalContent.substring(0, 280)}`;
-          if (originalContent.length > 280) processed += '...';
+          // Split content into tweets of max 280 chars each, trying to break at sentence boundaries
+          const tweetMaxLength = 280;
+          let remainingContent = originalContent;
+          let tweetCount = 1;
+          
+          while (remainingContent.length > 0 && tweetCount <= 10) {
+            let tweetContent = '';
+            
+            if (remainingContent.length <= tweetMaxLength) {
+              // If remaining content fits in a tweet, use it all
+              tweetContent = remainingContent;
+              remainingContent = '';
+            } else {
+              // Try to find a good breaking point (period, question mark, exclamation)
+              let breakPoint = -1;
+              // Look for sentence endings within the last 30% of the max length
+              for (let i = tweetMaxLength; i > tweetMaxLength * 0.7; i--) {
+                if (i < remainingContent.length && ['.', '!', '?', '\n'].includes(remainingContent[i])) {
+                  breakPoint = i + 1; // Include the punctuation
+                  break;
+                }
+              }
+              
+              // If no good breaking point, try to break at a space
+              if (breakPoint === -1) {
+                const lastSpace = remainingContent.lastIndexOf(' ', tweetMaxLength);
+                if (lastSpace > tweetMaxLength * 0.5) { // Only break at space if it's not too early
+                  breakPoint = lastSpace + 1; // Include the space
+                } else {
+                  // If no good breaking point, just cut at max length
+                  breakPoint = tweetMaxLength;
+                }
+              }
+              
+              tweetContent = remainingContent.substring(0, breakPoint).trim();
+              remainingContent = remainingContent.substring(breakPoint).trim();
+            }
+            
+            processed += `Tweet ${tweetCount}: ${tweetContent}`;
+            
+            if (remainingContent.length > 0) {
+              processed += '\n\n';
+            }
+            
+            tweetCount++;
+          }
+          
+          // If there's still content left, note that it's truncated
+          if (remainingContent.length > 0) {
+            processed += '\n\n(Additional content truncated due to Twitter character limits)';
+          }
           break;
         case 'linkedin':
-          processed += `Professional post: ${originalContent}`;
+          processed += `# Professional LinkedIn Post\n\n${originalContent}\n\n#thoughtleadership #professional #networking`;
           break;
         case 'blog':
-          processed += `Blog article:\n\n# Title\n\n${originalContent}\n\n## Conclusion\n\nThank you for reading!`;
+          processed += `# Blog Title\n\n## Introduction\n\n${originalContent.substring(0, originalContent.length / 3)}\n\n## Main Content\n\n${originalContent.substring(originalContent.length / 3, originalContent.length * 2 / 3)}\n\n## Conclusion\n\n${originalContent.substring(originalContent.length * 2 / 3)}\n\nThank you for reading!`;
+          break;
+        case 'instagram':
+          processed += `${originalContent.substring(0, 150)}\n\n`;
+          processed += '#instagram #content #socialmedia #trending #follow';
+          break;
+        case 'facebook':
+          processed += `${originalContent}\n\nWhat do you think? Let me know in the comments below! 👇`;
+          break;
+        case 'youtube':
+          processed += `📺 VIDEO DESCRIPTION\n\n${originalContent}\n\n⏱️ TIMESTAMPS:\n0:00 Introduction\n1:30 Main Topic\n5:45 Summary\n\n🔗 LINKS:\n- Website: https://example.com\n- Follow me on Twitter: @username\n\n#youtube #video #content`;
           break;
         default:
           processed += originalContent;
@@ -84,21 +190,33 @@ export default function Create() {
       
       // Save to history in Supabase
       if (user) {
-        const { error } = await supabase.from('content_history').insert({
-          user_id: user.id,
-          original_content: originalContent,
-          repurposed_content: processed,
-          content_type: contentType,
-          tone: tone,
-          target_audience: targetAudience,
-          content_length: contentLength
-        });
-        
-        if (error) {
-          console.error('Error saving to history:', error);
-          toast.error('Failed to save to history');
-        } else {
-          toast.success('Content saved to history');
+        try {
+          // Create an object with all fields we want to save
+          const historyData = {
+            user_id: user.id,
+            original_content: originalContent,
+            repurposed_content: processed,
+            content_type: contentType,
+            tone: tone,
+            target_audience: targetAudience,
+            // Store content_length as metadata since the column doesn't exist
+            metadata: JSON.stringify({ content_length: contentLength })
+          };
+          
+          // Log what we're trying to save for debugging
+          console.log('Saving to history:', historyData);
+          
+          const { error } = await supabase.from('content_history').insert(historyData);
+          
+          if (error) {
+            console.error('Error saving to history:', JSON.stringify(error));
+            toast.error(`Failed to save to history: ${error.message || 'Unknown error'}`);
+          } else {
+            toast.success('Content saved to history');
+          }
+        } catch (err) {
+          console.error('Exception saving to history:', err);
+          toast.error('Failed to save to history due to an unexpected error');
         }
       }
     } catch (error) {
@@ -188,19 +306,88 @@ export default function Create() {
                 title="Twitter Thread" 
                 description="Create engaging multi-tweet content" 
                 icon={<Twitter className="h-6 w-6 text-indigo-600" />} 
+                onClick={() => handleTemplateSelect('twitter')}
+                isSelected={selectedTemplate === 'twitter'}
               />
               <TemplateSelectionCard 
                 title="LinkedIn Post" 
                 description="Professional content for your network" 
                 icon={<Linkedin className="h-6 w-6 text-indigo-600" />} 
+                onClick={() => handleTemplateSelect('linkedin')}
+                isSelected={selectedTemplate === 'linkedin'}
               />
               <TemplateSelectionCard 
                 title="Blog Article" 
                 description="Long-form content with introduction" 
                 icon={<BookOpen className="h-6 w-6 text-indigo-600" />} 
+                onClick={() => handleTemplateSelect('blog')}
+                isSelected={selectedTemplate === 'blog'}
+              />
+              <TemplateSelectionCard 
+                title="Instagram Post" 
+                description="Visual content with engaging captions" 
+                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>} 
+                onClick={() => handleTemplateSelect('instagram')}
+                isSelected={selectedTemplate === 'instagram'}
+              />
+              <TemplateSelectionCard 
+                title="Facebook Post" 
+                description="Shareable content for your audience" 
+                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>} 
+                onClick={() => handleTemplateSelect('facebook')}
+                isSelected={selectedTemplate === 'facebook'}
+              />
+              <TemplateSelectionCard 
+                title="YouTube Description" 
+                description="SEO-friendly video descriptions" 
+                icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>} 
+                onClick={() => handleTemplateSelect('youtube')}
+                isSelected={selectedTemplate === 'youtube'}
               />
             </div>
           </div>
+          
+          {selectedTemplate && (
+            <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Template Information</h2>
+              <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+                <h3 className="text-sm font-medium text-indigo-800 mb-2">
+                  {selectedTemplate === 'twitter' && 'Twitter Thread Template'}
+                  {selectedTemplate === 'linkedin' && 'LinkedIn Post Template'}
+                  {selectedTemplate === 'blog' && 'Blog Article Template'}
+                  {selectedTemplate === 'instagram' && 'Instagram Post Template'}
+                  {selectedTemplate === 'facebook' && 'Facebook Post Template'}
+                  {selectedTemplate === 'youtube' && 'YouTube Description Template'}
+                </h3>
+                <p className="text-xs text-indigo-700 mb-2">
+                  {selectedTemplate === 'twitter' && 'Create an engaging Twitter thread with multiple tweets. Optimal length is 2-5 tweets.'}
+                  {selectedTemplate === 'linkedin' && 'Create a professional LinkedIn post to share with your network. Focus on industry insights and professional achievements.'}
+                  {selectedTemplate === 'blog' && 'Create a comprehensive blog article with introduction, body, and conclusion. Include headings and subheadings for better readability.'}
+                  {selectedTemplate === 'instagram' && 'Create a captivating Instagram caption that complements your visual content. Focus on storytelling and engagement.'}
+                  {selectedTemplate === 'facebook' && 'Create a Facebook post that encourages sharing and comments. Include questions or calls to action to boost engagement.'}
+                  {selectedTemplate === 'youtube' && 'Create an SEO-friendly YouTube video description with timestamps, links, and keywords to improve discoverability.'}
+                </p>
+                {selectedTemplate === 'twitter' && (
+                  <div className="text-xs text-indigo-600">Recommended: 280 characters per tweet, use emojis and hashtags</div>
+                )}
+                {selectedTemplate === 'linkedin' && (
+                  <div className="text-xs text-indigo-600">Recommended: 1300-2000 characters, professional tone, include a call to action</div>
+                )}
+                {selectedTemplate === 'blog' && (
+                  <div className="text-xs text-indigo-600">Recommended: 1500+ words, include images, use subheadings every 300 words</div>
+                )}
+                {selectedTemplate === 'instagram' && (
+                  <div className="text-xs text-indigo-600">Recommended: 125-150 characters, 5-10 relevant hashtags, include emojis</div>
+                )}
+                {selectedTemplate === 'facebook' && (
+                  <div className="text-xs text-indigo-600">Recommended: 40-80 characters, include an image or link, ask a question</div>
+                )}
+                {selectedTemplate === 'youtube' && (
+                  <div className="text-xs text-indigo-600">Recommended: 200-300 words, include timestamps, links to related content, and relevant keywords</div>
+                )}
+              </div>
+            </div>
+          )}
           
           <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Content Source</h2>
@@ -217,7 +404,7 @@ export default function Create() {
                   value={originalContent}
                   onChange={(e) => setOriginalContent(e.target.value)}
                   placeholder="Type or paste your content here..."
-                  className="w-full h-32 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full h-32 p-3 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 ></textarea>
               </div>
             )}
@@ -280,7 +467,7 @@ export default function Create() {
                 <input
                   type="url"
                   placeholder="Enter URL to import content..."
-                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="mt-2 text-xs text-gray-500">
                   We&apos;ll extract the main content from the provided URL
@@ -301,6 +488,8 @@ export default function Create() {
                   setIncludeKeywords={setIncludeKeywords}
                   keywords={keywords}
                   setKeywords={setKeywords}
+                  targetAudience={targetAudience}
+                  setTargetAudience={setTargetAudience}
                 />
               </div>
             </div>
@@ -309,7 +498,7 @@ export default function Create() {
               <div className="bg-white p-6 rounded-lg border border-gray-200 h-full flex flex-col">
                 <button
                   onClick={handleSubmit}
-                  disabled={loading || !originalContent.trim()}
+                  disabled={loading || !originalContent.trim() || !selectedTemplate}
                   className="w-full py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center mb-3"
                 >
                   {loading ? (
@@ -363,7 +552,7 @@ export default function Create() {
                 </div>
               </div>
               
-              <div className="bg-gray-50 p-4 rounded-md whitespace-pre-wrap">
+              <div className="bg-gray-50 p-4 text-gray-700 rounded-md whitespace-pre-wrap max-h-[500px] overflow-y-auto">
                 {repurposedContent}
               </div>
             </div>

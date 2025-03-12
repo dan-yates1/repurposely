@@ -1,0 +1,19 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- First rectangle with 12 degree rotation -->
+  <rect x="4" y="4" width="24" height="24" rx="4" transform="rotate(12 4 4)" fill="url(#gradient1)" />
+  
+  <!-- Second rectangle with -6 degree rotation -->
+  <rect x="2" y="6" width="24" height="24" rx="4" transform="rotate(-6 2 6)" fill="url(#gradient2)" opacity="0.7" />
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="gradient1" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5" />
+      <stop offset="1" stop-color="#9333EA" />
+    </linearGradient>
+    <linearGradient id="gradient2" x1="2" y1="6" x2="26" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1" />
+      <stop offset="1" stop-color="#4338CA" />
+    </linearGradient>
+  </defs>
+</svg>

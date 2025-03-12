@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { FileText, Twitter, Linkedin, BookOpen } from 'lucide-react';
 
 interface ContentCardProps {
+  id?: string;
   title: string;
   description: string;
   timeAgo: string;
   type: 'twitter' | 'linkedin' | 'blog';
 }
 
-export function ContentCard({ title, description, timeAgo, type }: ContentCardProps) {
+export function ContentCard({ id = '', title, description, timeAgo, type }: ContentCardProps) {
   const getIcon = () => {
     switch (type) {
       case 'twitter':
@@ -31,10 +32,10 @@ export function ContentCard({ title, description, timeAgo, type }: ContentCardPr
       <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
       <p className="text-sm text-gray-600 mb-4">{description}</p>
       <div className="flex space-x-2">
-        <Link href="#" className="px-4 py-2 bg-indigo-100 text-indigo-600 rounded-md text-sm font-medium">
+        <Link href={`/content/${id}`} className="px-4 py-2 bg-indigo-100 text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-200 transition-colors">
           View
         </Link>
-        <Link href="#" className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-md text-sm font-medium">
+        <Link href={`/content/${id}/edit`} className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors">
           Edit
         </Link>
       </div>

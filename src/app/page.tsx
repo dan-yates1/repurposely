@@ -1,146 +1,272 @@
-import { Button } from '@/components/ui/button';
-import { Twitter, Linkedin, Facebook, Instagram, Mail, Youtube } from 'lucide-react';
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  // Client-side code only
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+
+    // Add required styles for animations
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+      }
+      @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      .animate-fadeIn {
+        animation: fadeIn 1s ease forwards;
+        opacity: 0;
+      }
+      .animate-slideUp {
+        animation: slideUp 1s ease forwards;
+        opacity: 0;
+      }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+      .animate-gradient {
+        animation: gradient 15s ease infinite;
+        background-size: 200% 200%;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // Only render animations if client-side
+  if (!mounted) {
+    return (
+      <div className="min-h-screen">
+        <div className="bg-indigo-600 py-24 min-h-screen flex items-center justify-center">
+          <div className="text-white text-2xl">Loading...</div>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen">
+      {/* Navigation */}
+      <nav className="bg-white py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <Logo />
+            <div className="flex space-x-6 items-center">
+              <Link href="/auth">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  Sign Up
+                </Button>
+              </Link>
+              <Link href="/pricing">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  Get Pro
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <header className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="text-center md:text-left md:max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
-              Transform Your Content with AI
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Repurpose your blogs, videos, and podcasts into engaging social media posts, 
-              emails, and more with our AI-powered platform.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-              <a href="/auth">
-                <Button variant="primary" size="lg">
-                  Get Started
-                </Button>
-              </a>
-              <a href="#features">
-                <Button variant="secondary" size="lg">
-                  Learn More
-                </Button>
-              </a>
+      <header className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-indigo-600 to-indigo-800 py-24">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply opacity-20 animate-pulse"></div>
+          <div
+            className="absolute top-1/4 left-1/3 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply opacity-20 animate-pulse"
+            style={{ animationDelay: "1s", animationDuration: "7s" }}
+          ></div>
+          <div
+            className="absolute bottom-0 right-1/4 w-64 h-64 bg-blue-400 rounded-full mix-blend-multiply opacity-20 animate-pulse"
+            style={{ animationDelay: "2s", animationDuration: "8s" }}
+          ></div>
+          <div
+            className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-400 rounded-full mix-blend-multiply opacity-20 animate-pulse"
+            style={{ animationDelay: "3s", animationDuration: "10s" }}
+          ></div>
+        </div>
+
+        {/* Decorative grid pattern */}
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10"></div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center">
+            <div className="lg:w-2/5 text-white mb-12 lg:mb-0 lg:pr-8">
+              <div className="inline-block px-3 py-1 rounded-full bg-indigo-500/30 backdrop-blur-sm text-sm font-semibold text-indigo-100 mb-6 animate-fadeIn">
+                CONTENT TRANSFORMATION PLATFORM
+              </div>
+              <h1
+                className="text-5xl md:text-6xl font-bold mb-8 leading-tight animate-slideUp"
+                style={{ animationDelay: "0.2s" }}
+              >
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-indigo-200">
+                  Powerful,
+                </span>
+                <br />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-indigo-200">
+                  not overpowering
+                </span>
+              </h1>
+              <p
+                className="text-xl text-indigo-100 mb-10 max-w-lg animate-slideUp"
+                style={{ animationDelay: "0.4s" }}
+              >
+                Finally, a content platform that&apos;s both powerful and easy
+                to use. Create impactful content experiences.
+              </p>
+              <div
+                className="mb-8 animate-slideUp"
+                style={{ animationDelay: "0.6s" }}
+              >
+                <a
+                  href="/auth"
+                  className="inline-block transition-transform hover:scale-105"
+                >
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="px-10 py-6 text-lg font-semibold text-indigo-600 hover:bg-white hover:shadow-indigo-200/50 shadow-xl rounded-xl"
+                  >
+                    Start free or get a demo
+                  </Button>
+                </a>
+              </div>
+              <p
+                className="text-sm text-indigo-200 animate-fadeIn"
+                style={{ animationDelay: "0.8s" }}
+              >
+                Get started with free tools, or get more with our premium
+                software.
+              </p>
+            </div>
+            <div
+              className="lg:w-3/5 animate-slideUp"
+              style={{ animationDelay: "0.5s" }}
+            >
+              <div className="relative">
+                {/* Decorative elements */}
+                <div
+                  className="absolute -top-10 -right-10 w-20 h-20 bg-indigo-400 rounded-full opacity-70 animate-float"
+                  style={{ animationDelay: "1s" }}
+                ></div>
+                <div
+                  className="absolute -bottom-6 -left-6 w-12 h-12 bg-indigo-300 rounded-full opacity-70 animate-float"
+                  style={{ animationDelay: "2s" }}
+                ></div>
+                <div
+                  className="absolute top-1/2 -right-4 w-8 h-8 bg-purple-400 rounded-full opacity-70 animate-float"
+                  style={{ animationDelay: "3s" }}
+                ></div>
+                <div
+                  className="absolute bottom-1/3 -left-2 w-6 h-6 bg-blue-400 rounded-full opacity-70 animate-float"
+                  style={{ animationDelay: "2.5s" }}
+                ></div>
+
+                {/* Dashboard image with glow effect */}
+                <div className="relative z-10 rounded-xl shadow-2xl overflow-hidden transform transition-all duration-700 hover:scale-[1.02] hover:shadow-indigo-500/20 hover:shadow-2xl">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur opacity-30 group-hover:opacity-70 transition duration-1000 animate-gradient"></div>
+                  <div className="relative">
+                    <Image
+                      src="/dashboard.jpg"
+                      width={2000}
+                      height={1500}
+                      alt="Dashboard Preview"
+                      className="w-full rounded-xl"
+                      priority
+                      quality={100}
+                      unoptimized
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Features Section */}
-      <section id="features" className="py-16 bg-white dark:bg-gray-800">
+      <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">How It Works</h2>
-            <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-              Three simple steps to repurpose your content
-            </p>
+            <h2 className="text-4xl font-bold text-gray-800">
+              The Content Platform Your Business Will Love
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="bg-[var(--card-bg)] p-6 rounded-lg shadow-md border border-[var(--border)]">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 rounded-full flex items-center justify-center text-xl font-bold mb-4">
+            <div className="p-6 rounded-lg">
+              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 1
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Input Your Content</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                Input Your Content
+              </h3>
+              <p className="text-gray-600">
                 Paste your blog post, article, or transcript into our platform.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-[var(--card-bg)] p-6 rounded-lg shadow-md border border-[var(--border)]">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 rounded-full flex items-center justify-center text-xl font-bold mb-4">
+            <div className="p-6 rounded-lg">
+              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 2
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Choose Your Format</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                Choose Your Format
+              </h3>
+              <p className="text-gray-600">
                 Select the output format and tone that matches your needs.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-[var(--card-bg)] p-6 rounded-lg shadow-md border border-[var(--border)]">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 rounded-full flex items-center justify-center text-xl font-bold mb-4">
+            <div className="p-6 rounded-lg">
+              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 3
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Get Repurposed Content</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Our AI transforms your content into the perfect format for your needs.
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                Get Repurposed Content
+              </h3>
+              <p className="text-gray-600">
+                Our AI transforms your content into the perfect format for your
+                needs.
               </p>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Output Formats Section */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Output Formats</h2>
-            <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-              Transform your content into various formats
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
-            {[
-              { name: "Twitter Threads", icon: <Twitter className="h-6 w-6 mx-auto mb-2" /> },
-              { name: "LinkedIn Posts", icon: <Linkedin className="h-6 w-6 mx-auto mb-2" /> },
-              { name: "Facebook Posts", icon: <Facebook className="h-6 w-6 mx-auto mb-2" /> },
-              { name: "Instagram Captions", icon: <Instagram className="h-6 w-6 mx-auto mb-2" /> },
-              { name: "Email Newsletters", icon: <Mail className="h-6 w-6 mx-auto mb-2" /> },
-              { name: "YouTube Scripts", icon: <Youtube className="h-6 w-6 mx-auto mb-2" /> }
-            ].map((format, index) => (
-              <div key={index} className="bg-[var(--card-bg)] p-4 rounded-lg shadow-md border border-[var(--border)]">
-                {format.icon}
-                <p className="font-medium text-gray-900 dark:text-white">{format.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-indigo-600 dark:bg-indigo-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">
-            Ready to Repurpose Your Content?
-          </h2>
-          <p className="text-xl text-indigo-100 mb-8 max-w-3xl mx-auto">
-            Join now and start transforming your content into multiple formats with just a few clicks.
-          </p>
-          <a href="/auth">
-            <Button 
-              variant="secondary" 
-              size="lg" 
-              className="px-8"
-            >
-              Get Started for Free
-            </Button>
-          </a>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">ContentRemix</h2>
-            <p className="text-gray-400 mb-6">
-              AI-powered content repurposing platform
-            </p>
-            <p className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} ContentRemix. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

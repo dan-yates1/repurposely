@@ -68,7 +68,7 @@ export default function Settings() {
           
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h1>
           
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-6">
+          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-900">Personal Information</h2>
             <div className="mb-4">
               <label className="block text-gray-700 mb-1">Full Name</label>
@@ -104,7 +104,7 @@ export default function Settings() {
             </div>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-6">
+          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-900">Preferences</h2>
             <div className="flex items-center mb-4">
               <span className="text-gray-700 mr-4">Dark Mode</span>
