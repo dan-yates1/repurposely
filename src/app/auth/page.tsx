@@ -50,12 +50,12 @@ export default function AuthPage() {
       (event, session) => {
         console.log('Auth state changed:', event, !!session);
         
-        if (event === 'SIGNED_IN' && session) {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
           console.log('User signed in, redirecting to dashboard');
           // Add a small delay to ensure the session is properly set
           setTimeout(() => {
             router.push('/dashboard');
-          }, 1000);
+          }, 1500);
         }
       }
     );
@@ -130,7 +130,7 @@ export default function AuthPage() {
                 },
               }}
               providers={['google']}
-              redirectTo={`${window.location.origin}/dashboard`}
+              redirectTo={`${window.location.origin}/auth`}
               theme="light"
               onlyThirdPartyProviders={false}
               view="sign_in"
