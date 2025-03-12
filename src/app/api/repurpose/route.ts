@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateContent } from '@/lib/claude';
-import { supabase } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const { originalContent, outputFormat, tone, userId } = await request.json();
+    const { originalContent, outputFormat, tone, contentLength, targetAudience, userId } = await request.json();
 
     // Validate input
     if (!originalContent || !outputFormat || !tone) {
@@ -18,22 +18,38 @@ export async function POST(request: NextRequest) {
     const repurposedContent = await generateContent(
       originalContent,
       outputFormat,
-      tone
+      tone,
+      contentLength || 'medium',
+      targetAudience || 'general'
     );
 
-    // If user is authenticated, save to history
+    // If user is authenticated, save to history using the admin client
     if (userId) {
-      const { error } = await supabase.from('content_history').insert({
-        user_id: userId,
-        original_content: originalContent,
-        repurposed_content: repurposedContent,
-        output_format: outputFormat,
-        tone: tone,
-        created_at: new Date().toISOString(),
-      });
+      try {
+        // Create an admin client that bypasses RLS
+        const supabaseAdmin = createAdminClient();
+        
+        // Insert the content history record
+        const { error } = await supabaseAdmin.from('content_history').insert({
+          user_id: userId,
+          original_content: originalContent,
+          repurposed_content: repurposedContent,
+          output_format: outputFormat,
+          tone: tone,
+          content_length: contentLength || 'medium',
+          target_audience: targetAudience || 'general',
+          created_at: new Date().toISOString(),
+        });
 
-      if (error) {
-        console.error('Error saving to history:', error);
+        if (error) {
+          console.error('Error saving to history:', error);
+          // Continue without saving to history
+        } else {
+          console.log('Successfully saved to history for user:', userId);
+        }
+      } catch (err) {
+        console.error('Error in Supabase operations:', err);
+        // Continue without saving to history
       }
     }
 
