@@ -66,12 +66,11 @@ export function HistoryView({
   const emailCount = contentHistory.filter(item => (item.content_type === 'email' || item.output_format === 'email-newsletter')).length;
   const videoCount = contentHistory.filter(item => (item.content_type === 'video' || item.output_format === 'youtube-script')).length;
 
-  const totalCount = contentHistory.length;
-  
-  const getPercentage = (count: number) => {
-    if (totalCount === 0) return 0;
-    return Math.round((count / totalCount) * 100);
-  };
+  // This function is no longer used since we're using count directly
+  // const getPercentage = (count: number) => {
+  //   if (contentHistory.length === 0) return 0;
+  //   return Math.round((count / contentHistory.length) * 100);
+  // };
 
   const getContentIcon = (item: ContentHistoryItem) => {
     const type = item.content_type || item.output_format?.split('-')[0] || 'other';
@@ -242,26 +241,26 @@ export function HistoryView({
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <CategoryCard
             icon={<Twitter className="h-5 w-5 text-blue-500" />}
-            title="Social Media"
-            percentage={getPercentage(twitterCount + linkedinCount)}
+            name="Social Media"
+            count={twitterCount + linkedinCount}
             onClick={() => setHistoryTab('social-media')}
           />
           <CategoryCard
             icon={<BookOpen className="h-5 w-5 text-green-600" />}
-            title="Blog Content"
-            percentage={getPercentage(blogCount)}
+            name="Blog Content"
+            count={blogCount}
             onClick={() => setHistoryTab('blog-content')}
           />
           <CategoryCard
             icon={<Mail className="h-5 w-5 text-orange-500" />}
-            title="Email Marketing"
-            percentage={getPercentage(emailCount)}
+            name="Email Marketing"
+            count={emailCount}
             onClick={() => setHistoryTab('email-marketing')}
           />
           <CategoryCard
             icon={<Video className="h-5 w-5 text-red-500" />}
-            title="Video Scripts"
-            percentage={getPercentage(videoCount)}
+            name="Video Scripts"
+            count={videoCount}
             onClick={() => setHistoryTab('video-scripts')}
           />
         </div>
