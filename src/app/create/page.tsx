@@ -11,6 +11,8 @@ import { Sidebar } from '@/components/ui/sidebar';
 import { TemplateSelectionCard } from '@/components/ui/template-selection-card';
 import { SourceTabs } from '@/components/ui/source-tabs';
 import { OutputSettings } from '@/components/ui/output-settings';
+import { useTokens } from '@/hooks/useTokens';
+import { OperationType } from '@/lib/token-service';
 
 export default function Create() {
   const router = useRouter();
@@ -29,6 +31,7 @@ export default function Create() {
   const [isUploading, setIsUploading] = useState(false);
   const [contentSource, setContentSource] = useState('text');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
 
   const sourceTabs = [
     { id: 'text', label: 'Text Input' },
@@ -100,6 +103,15 @@ export default function Create() {
 
     if (!selectedTemplate) {
       toast.error('Please select a template first');
+      return;
+    }
+
+    // Determine which operation type to use based on the content type
+    const operationType: OperationType = 'TEXT_REPURPOSE';
+
+    // Check if user has enough tokens for this operation
+    if (!canPerformOperation(operationType)) {
+      toast.error('You do not have enough tokens for this operation. Please upgrade your plan or wait for your tokens to reset.');
       return;
     }
 
@@ -213,6 +225,26 @@ export default function Create() {
             toast.error(`Failed to save to history: ${error.message || 'Unknown error'}`);
           } else {
             toast.success('Content saved to history');
+            
+            // Record token transaction after successful content generation
+            try {
+              // Get the content ID from the most recent history entry
+              const { data: contentData } = await supabase
+                .from('content_history')
+                .select('id')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+                
+              const contentId = contentData && contentData.length > 0 ? contentData[0].id : undefined;
+              
+              // Record the token transaction
+              await recordTokenTransaction(operationType, contentId);
+              toast.success(`Used ${tokenUsage ? '1' : '1'} token for content generation`);
+            } catch (tokenError) {
+              console.error('Error recording token transaction:', tokenError);
+              // Don't show error to user as content was still generated successfully
+            }
           }
         } catch (err) {
           console.error('Exception saving to history:', err);
@@ -227,14 +259,16 @@ export default function Create() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
-
   const handleFileUpload = async () => {
     if (!file) return;
+    
+    // Check if user has enough tokens for video processing
+    const operationType: OperationType = 'VIDEO_PROCESSING';
+    
+    if (!canPerformOperation(operationType)) {
+      toast.error('You do not have enough tokens for video processing. Please upgrade your plan or wait for your tokens to reset.');
+      return;
+    }
     
     setIsUploading(true);
     setUploadProgress(0);
@@ -258,6 +292,17 @@ export default function Create() {
       const transcription = `This is a transcription of the uploaded ${file.name} file. In a real application, this would be the actual transcribed content from your audio or video file.`;
       
       setOriginalContent(transcription);
+      
+      // Record token transaction for video processing
+      if (user?.id) {
+        try {
+          await recordTokenTransaction(operationType);
+          toast.success(`Used ${tokenUsage ? '10' : '10'} tokens for video processing`);
+        } catch (tokenError) {
+          console.error('Error recording token transaction:', tokenError);
+        }
+      }
+      
       toast.success('File transcribed successfully');
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -269,6 +314,12 @@ export default function Create() {
         setIsUploading(false);
         setUploadProgress(0);
       }, 500);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
     }
   };
 
