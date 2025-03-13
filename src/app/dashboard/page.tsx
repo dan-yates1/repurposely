@@ -12,8 +12,6 @@ import { Tabs } from "@/components/ui/tabs";
 import { ContentCard } from "@/components/ui/content-card";
 import { TemplateCard } from "@/components/ui/template-card";
 import { AnalyticsCard } from "@/components/ui/analytics-card";
-import { TokenUsageCard } from "@/components/ui/token-usage-card";
-import { TokenHistory } from "@/components/ui/token-history";
 
 // Define types for content history items
 interface ContentHistoryItem {
@@ -379,17 +377,6 @@ export default function Dashboard() {
                 trend={contentHistory.length > 0 ? "+" + (contentHistory.length * 5) + "%" : "0%"}
                 trendUp={contentHistory.length > 0}
               />
-            </div>
-          </div>
-
-          {/* Token Usage */}
-          <div className="mt-12">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Token Usage
-            </h2>
-            <TokenUsageCard />
-            <div className="mt-4">
-              <TokenHistory />
             </div>
           </div>
         </div>

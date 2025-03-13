@@ -8,16 +8,17 @@ interface LogoProps {
 export function Logo({ className = '' }: LogoProps) {
   return (
     <Link href="/" className={`flex items-center ${className}`}>
-      <div className="relative w-10 h-10 transform hover:scale-105 transition-transform duration-300">
-        <Image 
-          src="/logo.svg" 
-          alt="ContentRemix Logo" 
-          width={64} 
-          height={64} 
-          className="object-contain" 
-          priority
-        />
-      </div>
+      <div className="flex items-center gap-2">
+          <Image 
+            src="/logo.svg" 
+            alt="Repurposely Logo" 
+            width={32} 
+            height={32} 
+            className="w-8 h-8" 
+            priority
+          />
+          <h1 className="text-lg font-semibold text-indigo-600">Repurposely</h1>
+        </div>
     </Link>
   );
 }

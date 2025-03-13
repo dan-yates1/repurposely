@@ -52,11 +52,59 @@ export default function Create() {
     checkUser();
   }, [router]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const templateId = params.get('template');
+    
+    if (templateId) {
+      const templateMap: Record<string, string> = {
+        // Social Media Templates
+        'twitter-thread': 'twitter',
+        'linkedin-post': 'linkedin',
+        'instagram-caption': 'instagram',
+        'facebook-post': 'facebook',
+        'tiktok-script': 'tiktok',
+        
+        // Blog & Article Templates
+        'blog-post': 'blog',
+        'listicle': 'listicle',
+        'how-to-guide': 'how-to-guide',
+        'content-summary': 'content-summary',
+        
+        // Email Templates
+        'newsletter': 'newsletter',
+        'welcome-email': 'welcome-email',
+        'promotional-email': 'promotional-email',
+        
+        // Video Templates
+        'youtube-script': 'youtube',
+        'video-description': 'video-description',
+        'podcast-outline': 'podcast-outline',
+        
+        // Marketing Templates
+        'product-description': 'product-description',
+        'ad-copy': 'ad-copy',
+        'press-release': 'press-release'
+      };
+      
+      const contentType = templateMap[templateId] || templateId;
+      
+      handleTemplateSelect(contentType);
+      
+      // Scroll to the content input section after template selection
+      setTimeout(() => {
+        const contentSection = document.getElementById('content-input-section');
+        if (contentSection) {
+          contentSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500);
+    }
+  }, []);
+
   const handleTemplateSelect = (template: string) => {
     setSelectedTemplate(template);
     setContentType(template);
     
-    // Set default values based on template
     switch (template) {
       case 'twitter':
         setTone('conversational');
@@ -106,10 +154,8 @@ export default function Create() {
       return;
     }
 
-    // Determine which operation type to use based on the content type
     const operationType: OperationType = 'TEXT_REPURPOSE';
 
-    // Check if user has enough tokens for this operation
     if (!canPerformOperation(operationType)) {
       toast.error('You do not have enough tokens for this operation. Please upgrade your plan or wait for your tokens to reset.');
       return;
@@ -118,15 +164,12 @@ export default function Create() {
     setLoading(true);
 
     try {
-      // In a real app, this would call an API to process the content
-      // For now, we'll simulate a delay and just transform the content
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       let processed = `Repurposed content for ${contentType}:\n\n`;
       
       switch (contentType) {
         case 'twitter':
-          // Split content into tweets of max 280 chars each, trying to break at sentence boundaries
           const tweetMaxLength = 280;
           let remainingContent = originalContent;
           let tweetCount = 1;
@@ -135,27 +178,22 @@ export default function Create() {
             let tweetContent = '';
             
             if (remainingContent.length <= tweetMaxLength) {
-              // If remaining content fits in a tweet, use it all
               tweetContent = remainingContent;
               remainingContent = '';
             } else {
-              // Try to find a good breaking point (period, question mark, exclamation)
               let breakPoint = -1;
-              // Look for sentence endings within the last 30% of the max length
               for (let i = tweetMaxLength; i > tweetMaxLength * 0.7; i--) {
                 if (i < remainingContent.length && ['.', '!', '?', '\n'].includes(remainingContent[i])) {
-                  breakPoint = i + 1; // Include the punctuation
+                  breakPoint = i + 1; 
                   break;
                 }
               }
               
-              // If no good breaking point, try to break at a space
               if (breakPoint === -1) {
                 const lastSpace = remainingContent.lastIndexOf(' ', tweetMaxLength);
-                if (lastSpace > tweetMaxLength * 0.5) { // Only break at space if it's not too early
-                  breakPoint = lastSpace + 1; // Include the space
+                if (lastSpace > tweetMaxLength * 0.5) { 
+                  breakPoint = lastSpace + 1; 
                 } else {
-                  // If no good breaking point, just cut at max length
                   breakPoint = tweetMaxLength;
                 }
               }
@@ -173,7 +211,6 @@ export default function Create() {
             tweetCount++;
           }
           
-          // If there's still content left, note that it's truncated
           if (remainingContent.length > 0) {
             processed += '\n\n(Additional content truncated due to Twitter character limits)';
           }
@@ -200,10 +237,8 @@ export default function Create() {
       
       setRepurposedContent(processed);
       
-      // Save to history in Supabase
       if (user) {
         try {
-          // Create an object with all fields we want to save
           const historyData = {
             user_id: user.id,
             original_content: originalContent,
@@ -211,11 +246,9 @@ export default function Create() {
             content_type: contentType,
             tone: tone,
             target_audience: targetAudience,
-            // Store content_length as metadata since the column doesn't exist
             metadata: JSON.stringify({ content_length: contentLength })
           };
           
-          // Log what we're trying to save for debugging
           console.log('Saving to history:', historyData);
           
           const { error } = await supabase.from('content_history').insert(historyData);
@@ -226,9 +259,7 @@ export default function Create() {
           } else {
             toast.success('Content saved to history');
             
-            // Record token transaction after successful content generation
             try {
-              // Get the content ID from the most recent history entry
               const { data: contentData } = await supabase
                 .from('content_history')
                 .select('id')
@@ -238,12 +269,10 @@ export default function Create() {
                 
               const contentId = contentData && contentData.length > 0 ? contentData[0].id : undefined;
               
-              // Record the token transaction
               await recordTokenTransaction(operationType, contentId);
               toast.success(`Used ${tokenUsage ? '1' : '1'} token for content generation`);
             } catch (tokenError) {
               console.error('Error recording token transaction:', tokenError);
-              // Don't show error to user as content was still generated successfully
             }
           }
         } catch (err) {
@@ -262,7 +291,6 @@ export default function Create() {
   const handleFileUpload = async () => {
     if (!file) return;
     
-    // Check if user has enough tokens for video processing
     const operationType: OperationType = 'VIDEO_PROCESSING';
     
     if (!canPerformOperation(operationType)) {
@@ -273,7 +301,6 @@ export default function Create() {
     setIsUploading(true);
     setUploadProgress(0);
     
-    // Simulate file upload progress
     const interval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 95) {
@@ -285,15 +312,12 @@ export default function Create() {
     }, 100);
     
     try {
-      // Simulate transcription process
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mock transcription result
       const transcription = `This is a transcription of the uploaded ${file.name} file. In a real application, this would be the actual transcribed content from your audio or video file.`;
       
       setOriginalContent(transcription);
       
-      // Record token transaction for video processing
       if (user?.id) {
         try {
           await recordTokenTransaction(operationType);
@@ -353,6 +377,7 @@ export default function Create() {
           <div className="mb-8">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Select Template</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Social Media Templates */}
               <TemplateSelectionCard 
                 title="Twitter Thread" 
                 description="Create engaging multi-tweet content" 
@@ -368,14 +393,7 @@ export default function Create() {
                 isSelected={selectedTemplate === 'linkedin'}
               />
               <TemplateSelectionCard 
-                title="Blog Article" 
-                description="Long-form content with introduction" 
-                icon={<BookOpen className="h-6 w-6 text-indigo-600" />} 
-                onClick={() => handleTemplateSelect('blog')}
-                isSelected={selectedTemplate === 'blog'}
-              />
-              <TemplateSelectionCard 
-                title="Instagram Post" 
+                title="Instagram Caption" 
                 description="Visual content with engaging captions" 
                 icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>} 
                 onClick={() => handleTemplateSelect('instagram')}
@@ -389,12 +407,24 @@ export default function Create() {
                 isSelected={selectedTemplate === 'facebook'}
               />
               <TemplateSelectionCard 
+                title="Blog Article" 
+                description="Long-form content with introduction" 
+                icon={<BookOpen className="h-6 w-6 text-indigo-600" />} 
+                onClick={() => handleTemplateSelect('blog')}
+                isSelected={selectedTemplate === 'blog'}
+              />
+              <TemplateSelectionCard 
                 title="YouTube Description" 
                 description="SEO-friendly video descriptions" 
                 icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>} 
                 onClick={() => handleTemplateSelect('youtube')}
                 isSelected={selectedTemplate === 'youtube'}
               />
+            </div>
+            <div className="mt-4 text-center">
+              <Link href="/templates" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                View all templates in the library →
+              </Link>
             </div>
           </div>
           
@@ -440,7 +470,7 @@ export default function Create() {
             </div>
           )}
           
-          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+          <div id="content-input-section" className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Content Source</h2>
             
             <SourceTabs 

@@ -5,6 +5,7 @@ import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle } from 'lu
 import { supabase } from '@/lib/supabase';
 import { useTokens } from '@/hooks/useTokens';
 import toast from 'react-hot-toast';
+import { Logo } from './logo';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -12,6 +13,7 @@ export function Sidebar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [userInitial, setUserInitial] = useState<string>('U');
+  const [userPlan, setUserPlan] = useState<string>('Free');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { 
     tokenUsage, 
@@ -23,7 +25,7 @@ export function Sidebar() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const isActive = (path: string) => {
-    return pathname === path ? 'text-indigo-600' : 'text-gray-500';
+    return pathname === path ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-100';
   };
 
   useEffect(() => {
@@ -35,8 +37,27 @@ export function Sidebar() {
         setUserId(data.user.id);
         
         if (email) {
-          setUserName(email);
+          setUserName(email.split('@')[0]);
           setUserInitial(email.charAt(0).toUpperCase());
+        }
+        
+        // Fetch user subscription plan
+        try {
+          const { data: subscriptionData, error } = await supabase
+            .from('user_subscriptions')
+            .select('subscription_tier')
+            .eq('user_id', data.user.id)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching subscription:', error);
+          } else if (subscriptionData) {
+            // Format the subscription tier for display
+            const tier = subscriptionData.subscription_tier || 'FREE';
+            setUserPlan(tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase());
+          }
+        } catch (error) {
+          console.error('Error in subscription fetch:', error);
         }
       }
     };
@@ -84,91 +105,119 @@ export function Sidebar() {
   };
 
   return (
-    <div className="h-full w-20 bg-white border-r border-gray-200 flex flex-col items-center py-6">
-      <div className="flex flex-col items-center space-y-8">
-        <Link href="/dashboard" className={`${isActive('/dashboard')} p-2 rounded-lg hover:bg-indigo-50`}>
-          <Home size={24} />
+    <div className="h-full w-64 bg-white border-r border-gray-200 flex flex-col py-4">
+      {/* Logo/Title */}
+      <div className="px-4 mb-6">
+        <Logo />
+      </div>
+
+      {/* Main Navigation */}
+      <div className="px-3 space-y-1">
+        <Link href="/dashboard" className={`flex items-center px-3 py-2 rounded-md ${isActive('/dashboard')}`}>
+          <Home size={18} className="mr-3" />
+          <span className="text-sm font-medium">Dashboard</span>
         </Link>
-        <Link href="/history" className={`${isActive('/history')} p-2 rounded-lg hover:bg-indigo-50`}>
-          <Clock size={24} />
+        <Link href="/history" className={`flex items-center px-3 py-2 rounded-md ${isActive('/history')}`}>
+          <Clock size={18} className="mr-3" />
+          <span className="text-sm font-medium">History</span>
         </Link>
-        <Link href="/create" className={`${isActive('/create')} p-2 rounded-lg hover:bg-indigo-50`}>
-          <PenSquare size={24} />
+        <Link href="/templates" className={`flex items-center px-3 py-2 rounded-md ${isActive('/templates')}`}>
+          <PenSquare size={18} className="mr-3" />
+          <span className="text-sm font-medium">Templates</span>
         </Link>
-        <Link href="/settings" className={`${isActive('/settings')} p-2 rounded-lg hover:bg-indigo-50`}>
-          <Settings size={24} />
+        <Link href="/settings" className={`flex items-center px-3 py-2 rounded-md ${isActive('/settings')}`}>
+          <Settings size={18} className="mr-3" />
+          <span className="text-sm font-medium">Settings</span>
         </Link>
       </div>
 
-      <div className="mt-auto relative" ref={dropdownRef}>
-        {/* Token Display */}
-        <div className="mt-auto">
-          {/* Token initialization error */}
-          {tokensError ? (
-            <button onClick={() => router.push('/token-fix')} className="group">
-              <div className="flex items-center justify-center bg-red-50 text-red-600 rounded-full p-2 mb-1 group-hover:bg-red-100 transition-colors">
-                <AlertCircle size={16} />
-              </div>
-              <div className="text-xs font-medium text-red-600 group-hover:text-red-700 transition-colors">
-                Fix
-              </div>
-            </button>
-          ) : (
-            <Link href="/dashboard" className="group">
-              <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-full p-2 mb-1 group-hover:bg-indigo-100 transition-colors">
-                  <Coins size={16} />
-                </div>
-                <div className="text-xs font-medium text-gray-700 group-hover:text-indigo-600 transition-colors">
-                  {tokensLoading ? (
-                    <span className="inline-block w-6 h-3 bg-gray-200 animate-pulse rounded"></span>
-                  ) : tokenUsage ? (
-                    tokenUsage.tokensRemaining
-                  ) : (
-                    '0'
-                  )}
-                </div>
-              </div>
-            </Link>
-          )}
+      {/* Recent Projects Section */}
+      {/* <div className="mt-8 px-3">
+        <h2 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent Projects</h2>
+        <div className="space-y-1">
+          <Link href="/projects/blog" className="flex items-center px-3 py-2 rounded-md text-gray-500 hover:bg-gray-100">
+            <FileText size={18} className="mr-3" />
+            <span className="text-sm font-medium">Blog Series</span>
+          </Link>
+          <Link href="/projects/social" className="flex items-center px-3 py-2 rounded-md text-gray-500 hover:bg-gray-100">
+            <Megaphone size={18} className="mr-3" />
+            <span className="text-sm font-medium">Social Campaign</span>
+          </Link>
+          <Link href="/projects/product" className="flex items-center px-3 py-2 rounded-md text-gray-500 hover:bg-gray-100">
+            <Briefcase size={18} className="mr-3" />
+            <span className="text-sm font-medium">Product Launch</span>
+          </Link>
         </div>
+      </div> */}
+
+      {/* Token Display */}
+      <div className="mt-auto px-3 mb-4">
+        {tokensError ? (
+          <button onClick={() => router.push('/token-fix')} className="w-full flex items-center px-3 py-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100">
+            <AlertCircle size={18} className="mr-3" />
+            <span className="text-sm font-medium">Fix Token Issue</span>
+          </button>
+        ) : (
+          <Link href="/dashboard" className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100">
+            <div className="flex items-center">
+              <Coins size={18} className="mr-3" />
+              <span className="text-sm font-medium">Tokens</span>
+            </div>
+            <span className="text-sm font-medium">
+              {tokensLoading ? (
+                <span className="inline-block w-6 h-3 bg-indigo-200 animate-pulse rounded"></span>
+              ) : tokenUsage ? (
+                tokenUsage.tokensRemaining
+              ) : (
+                '0'
+              )}
+            </span>
+          </Link>
+        )}
 
         {/* Token initialization button - only shown when needed */}
         {!tokenUsage && !tokensLoading && !tokensError && (
-          <div className="mt-4 px-2">
+          <div className="mt-2">
             <button
               onClick={handleInitializeTokens}
-              className="w-full py-1 px-2 text-xs bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
+              className="w-full py-2 px-3 text-sm bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
             >
-              Init
+              Initialize Tokens
             </button>
           </div>
         )}
+      </div>
 
-        {/* User dropdown */}
-        <div className="mt-8">
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-center bg-gray-100 text-gray-700 rounded-full h-10 w-10 hover:bg-gray-200 transition-colors"
-          >
+      {/* User Profile */}
+      <div className="px-3 pt-3 border-t border-gray-200" ref={dropdownRef}>
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-full flex items-center px-3 py-2 rounded-md hover:bg-gray-100"
+        >
+          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 mr-3">
             {userInitial}
-          </button>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-700 truncate">{userName || 'User'}</p>
+            <p className="text-xs text-gray-500 truncate">
+              <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
+                {userPlan}
+              </span>
+            </p>
+          </div>
+        </button>
 
-          {isDropdownOpen && (
-            <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 w-48 bg-white rounded-lg shadow-lg py-2 z-10">
-              <div className="px-4 py-2 border-b border-gray-100">
-                <p className="text-sm font-medium text-gray-700">{userName}</p>
-              </div>
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <LogOut size={16} className="mr-2" />
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
+        {isDropdownOpen && (
+          <div className="mt-2 w-full bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <LogOut size={16} className="mr-2" />
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
