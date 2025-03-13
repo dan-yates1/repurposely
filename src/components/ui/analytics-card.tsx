@@ -7,6 +7,8 @@ interface AnalyticsCardProps {
   trend?: string;
   trendUp?: boolean;
   description?: string;
+  change?: string;
+  isPositive?: boolean;
 }
 
 export function AnalyticsCard({ 
@@ -15,7 +17,9 @@ export function AnalyticsCard({
   type, 
   trend, 
   trendUp, 
-  description 
+  description,
+  change,
+  isPositive
 }: AnalyticsCardProps) {
   const getIcon = () => {
     switch (type) {
@@ -31,27 +35,49 @@ export function AnalyticsCard({
   };
 
   return (
-    <div className="bg-gray-50 p-6 rounded-lg">
-      <div className="mb-4">
-        {getIcon()}
+    <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+          <div className="mt-1 text-2xl font-semibold text-gray-900">{value}</div>
+        </div>
+        <div className="p-2 bg-indigo-50 rounded-md">
+          {getIcon()}
+        </div>
       </div>
-      <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-      <p className="text-xl font-semibold text-gray-800">{value}</p>
       
-      {trend && (
+      {(trend || change) && (
         <div className="flex items-center mt-2">
-          {trendUp ? 
-            <TrendingUp className="w-4 h-4 text-green-500 mr-1" /> : 
-            <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-          }
-          <span className={`text-sm ${trendUp ? 'text-green-500' : 'text-red-500'}`}>
-            {trend}
-          </span>
+          {trend && (
+            <>
+              {trendUp ? (
+                <TrendingUp className="text-green-500 mr-1" size={16} />
+              ) : (
+                <TrendingDown className="text-red-500 mr-1" size={16} />
+              )}
+              <span className={`text-sm font-medium ${trendUp ? 'text-green-500' : 'text-red-500'}`}>
+                {trend}
+              </span>
+            </>
+          )}
+          
+          {change && (
+            <div className="flex items-center">
+              {isPositive ? (
+                <TrendingUp className="text-green-500 mr-1" size={16} />
+              ) : (
+                <TrendingDown className="text-red-500 mr-1" size={16} />
+              )}
+              <span className={`text-sm font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                {change}
+              </span>
+            </div>
+          )}
         </div>
       )}
       
       {description && (
-        <p className="text-sm text-gray-600 mt-1">{description}</p>
+        <div className="mt-2 text-sm text-gray-500">{description}</div>
       )}
     </div>
   );

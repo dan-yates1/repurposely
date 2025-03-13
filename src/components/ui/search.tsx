@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 interface SearchProps {
   placeholder?: string;
   onSearch?: (query: string) => void;
+  className?: string;
 }
 
-export function Search({ placeholder = "Search content...", onSearch }: SearchProps) {
+export function Search({ placeholder = "Search content...", onSearch, className = "" }: SearchProps) {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export function Search({ placeholder = "Search content...", onSearch }: SearchPr
   }, [query, onSearch]);
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
         <SearchIcon className="w-4 h-4 text-gray-400" />
       </div>

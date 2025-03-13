@@ -1,33 +1,30 @@
-import { ChevronRight } from 'lucide-react';
+import { ReactNode } from 'react';
 
 interface CategoryCardProps {
-  icon: React.ReactNode;
-  title: string;
-  percentage: number;
+  icon: ReactNode;
+  name: string;
+  count: number;
   onClick?: () => void;
 }
 
 export function CategoryCard({
   icon,
-  title,
-  percentage,
+  name,
+  count,
   onClick
 }: CategoryCardProps) {
   return (
     <div 
-      className="flex items-center justify-between py-4 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 px-2 rounded-md"
+      className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
       onClick={onClick}
     >
-      <div className="flex items-center">
-        <div className="mr-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="p-2 bg-indigo-50 rounded-md">
           {icon}
         </div>
-        <div>
-          <h3 className="text-sm font-medium text-gray-900">{title}</h3>
-          <p className="text-xs text-gray-500 mt-1">{percentage}% of all content</p>
-        </div>
+        <span className="text-2xl font-semibold text-gray-900">{count}</span>
       </div>
-      <ChevronRight className="h-4 w-4 text-gray-400" />
+      <h3 className="text-sm font-medium text-gray-700">{name}</h3>
     </div>
   );
 }

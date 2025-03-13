@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle } from 'lucide-react';
+import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTokens } from '@/hooks/useTokens';
 import toast from 'react-hot-toast';
@@ -14,6 +14,7 @@ export function Sidebar() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userInitial, setUserInitial] = useState<string>('U');
   const [userPlan, setUserPlan] = useState<string>('Free');
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { 
     tokenUsage, 
@@ -77,6 +78,27 @@ export function Sidebar() {
     };
   }, []);
 
+  // Load sidebar collapsed state from localStorage
+  useEffect(() => {
+    // Only run in browser environment
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('sidebarCollapsed');
+      if (savedState !== null) {
+        setIsCollapsed(savedState === 'true');
+      }
+    }
+  }, []);
+
+  // Save sidebar collapsed state to localStorage when it changes
+  const toggleSidebar = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    // Only access localStorage in browser environment
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', String(newState));
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -105,65 +127,57 @@ export function Sidebar() {
   };
 
   return (
-    <div className="h-full w-64 bg-white border-r border-gray-200 flex flex-col py-4">
+    <div className={`h-full ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex flex-col py-4 transition-all duration-300 ease-in-out relative`}>
+      {/* Toggle Button */}
+      <button 
+        onClick={toggleSidebar}
+        className="absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1 shadow-md z-10 hover:bg-gray-50"
+      >
+        {isCollapsed ? 
+          <ChevronRight size={16} className="text-gray-500" /> : 
+          <ChevronLeft size={16} className="text-gray-500" />
+        }
+      </button>
+
       {/* Logo/Title */}
-      <div className="px-4 mb-6">
-        <Logo />
+      <div className={`${isCollapsed ? 'px-2' : 'px-4'} mb-6 flex justify-center`}>
+        <Logo text={!isCollapsed} />
       </div>
 
       {/* Main Navigation */}
-      <div className="px-3 space-y-1">
-        <Link href="/dashboard" className={`flex items-center px-3 py-2 rounded-md ${isActive('/dashboard')}`}>
-          <Home size={18} className="mr-3" />
-          <span className="text-sm font-medium">Dashboard</span>
+      <div className={`${isCollapsed ? 'px-2' : 'px-3'} space-y-1`}>
+        <Link href="/dashboard" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/dashboard')}`}>
+          <Home size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+          {!isCollapsed && <span className="text-sm font-medium">Dashboard</span>}
         </Link>
-        <Link href="/history" className={`flex items-center px-3 py-2 rounded-md ${isActive('/history')}`}>
-          <Clock size={18} className="mr-3" />
-          <span className="text-sm font-medium">History</span>
+        <Link href="/history" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/history')}`}>
+          <Clock size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+          {!isCollapsed && <span className="text-sm font-medium">History</span>}
         </Link>
-        <Link href="/templates" className={`flex items-center px-3 py-2 rounded-md ${isActive('/templates')}`}>
-          <PenSquare size={18} className="mr-3" />
-          <span className="text-sm font-medium">Templates</span>
+        <Link href="/templates" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/templates')}`}>
+          <PenSquare size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+          {!isCollapsed && <span className="text-sm font-medium">Templates</span>}
         </Link>
-        <Link href="/settings" className={`flex items-center px-3 py-2 rounded-md ${isActive('/settings')}`}>
-          <Settings size={18} className="mr-3" />
-          <span className="text-sm font-medium">Settings</span>
+        <Link href="/settings" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/settings')}`}>
+          <Settings size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+          {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
         </Link>
       </div>
 
-      {/* Recent Projects Section */}
-      {/* <div className="mt-8 px-3">
-        <h2 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent Projects</h2>
-        <div className="space-y-1">
-          <Link href="/projects/blog" className="flex items-center px-3 py-2 rounded-md text-gray-500 hover:bg-gray-100">
-            <FileText size={18} className="mr-3" />
-            <span className="text-sm font-medium">Blog Series</span>
-          </Link>
-          <Link href="/projects/social" className="flex items-center px-3 py-2 rounded-md text-gray-500 hover:bg-gray-100">
-            <Megaphone size={18} className="mr-3" />
-            <span className="text-sm font-medium">Social Campaign</span>
-          </Link>
-          <Link href="/projects/product" className="flex items-center px-3 py-2 rounded-md text-gray-500 hover:bg-gray-100">
-            <Briefcase size={18} className="mr-3" />
-            <span className="text-sm font-medium">Product Launch</span>
-          </Link>
-        </div>
-      </div> */}
-
       {/* Token Display */}
-      <div className="mt-auto px-3 mb-4">
+      <div className={`mt-auto ${isCollapsed ? 'px-2' : 'px-3'} mb-4`}>
         {tokensError ? (
-          <button onClick={() => router.push('/token-fix')} className="w-full flex items-center px-3 py-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100">
-            <AlertCircle size={18} className="mr-3" />
-            <span className="text-sm font-medium">Fix Token Issue</span>
+          <button onClick={() => router.push('/token-fix')} className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100`}>
+            <AlertCircle size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+            {!isCollapsed && <span className="text-sm font-medium">Fix Token Issue</span>}
           </button>
         ) : (
-          <Link href="/dashboard" className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100">
-            <div className="flex items-center">
-              <Coins size={18} className="mr-3" />
-              <span className="text-sm font-medium">Tokens</span>
+          <Link href="/dashboard" className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center justify-between'} px-3 py-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100`}>
+            <div className={`flex ${isCollapsed ? 'justify-center items-center' : 'items-center'}`}>
+              <Coins size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+              {!isCollapsed && <span className="text-sm font-medium">Tokens</span>}
             </div>
-            <span className="text-sm font-medium">
+            <span className={`text-sm font-medium ${isCollapsed ? 'mt-1' : ''}`}>
               {tokensLoading ? (
                 <span className="inline-block w-6 h-3 bg-indigo-200 animate-pulse rounded"></span>
               ) : tokenUsage ? (
@@ -176,7 +190,7 @@ export function Sidebar() {
         )}
 
         {/* Token initialization button - only shown when needed */}
-        {!tokenUsage && !tokensLoading && !tokensError && (
+        {!tokenUsage && !tokensLoading && !tokensError && !isCollapsed && (
           <div className="mt-2">
             <button
               onClick={handleInitializeTokens}
@@ -189,26 +203,28 @@ export function Sidebar() {
       </div>
 
       {/* User Profile */}
-      <div className="px-3 pt-3 border-t border-gray-200" ref={dropdownRef}>
+      <div className={`${isCollapsed ? 'px-2' : 'px-3'} pt-3 border-t border-gray-200`} ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="w-full flex items-center px-3 py-2 rounded-md hover:bg-gray-100"
+          className={`w-full flex ${isCollapsed ? 'justify-center' : 'items-center'} px-3 py-2 rounded-md hover:bg-gray-100`}
         >
           <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 mr-3">
             {userInitial}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-700 truncate">{userName || 'User'}</p>
-            <p className="text-xs text-gray-500 truncate">
-              <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
-                {userPlan}
-              </span>
-            </p>
-          </div>
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-700 truncate">{userName || 'User'}</p>
+              <p className="text-xs text-gray-500 truncate">
+                <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
+                  {userPlan}
+                </span>
+              </p>
+            </div>
+          )}
         </button>
 
         {isDropdownOpen && (
-          <div className="mt-2 w-full bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+          <div className={`mt-2 ${isCollapsed ? 'ml-16' : 'w-full'} bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200 absolute`}>
             <button
               onClick={handleSignOut}
               className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

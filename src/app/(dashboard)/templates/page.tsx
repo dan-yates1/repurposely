@@ -21,8 +21,8 @@ import {
   Video,
   Plus,
 } from "lucide-react";
-import { Sidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // Define template categories
 const CATEGORIES = [
@@ -212,6 +212,8 @@ export default function Templates() {
   const [showPremium, setShowPremium] = useState(true);
   const [userPlan, setUserPlan] = useState<string>("Free");
 
+  usePageTitle("Templates");
+
   useEffect(() => {
     // Check user and get their plan
     const getUserInfo = async () => {
@@ -337,215 +339,215 @@ export default function Templates() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="max-w-7xl mx-auto px-8 py-6">
       <Toaster position="top-right" />
 
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-8 py-6">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
-              <p className="text-gray-500 mt-1">
-                Choose a template to repurpose your content
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              {/* Search */}
-              <div className="relative w-64">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search size={18} className="text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Search templates..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              {/* Premium Filter */}
-              <button
-                className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm ${
-                  showPremium
-                    ? "bg-indigo-50 text-indigo-600"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-                onClick={() => setShowPremium(!showPremium)}
-              >
-                <Filter size={16} />
-                <span>{showPremium ? "Showing All" : "Hide Premium"}</span>
-              </button>
-
-              {/* Create Custom Template Button */}
-              <Button
-                variant="primary"
-                size="md"
-                className="rounded-md px-4 shadow-sm hover:shadow-md transition-all duration-200 flex items-center"
-                onClick={handleCreateCustomTemplate}
-              >
-                <Plus size={16} className="mr-2" />
-                Custom Template
-              </Button>
-            </div>
-          </div>
-
-          {/* Categories */}
-          <div className="flex space-x-2 mb-8 overflow-x-auto pb-2">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category.id}
-                className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap ${
-                  selectedCategory === category.id
-                    ? "bg-indigo-100 text-indigo-700"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-                onClick={() => setSelectedCategory(category.id)}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Templates Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {filteredTemplates.length > 0 ? (
-              filteredTemplates.map((template) => {
-                const isFavorite = userTemplates.some(
-                  (ut) => ut.id === template.id && ut.favorite
-                );
-
-                // Determine which icon to use based on template type and platform
-                let icon;
-                if (template.platform) {
-                  switch (template.platform) {
-                    case "twitter":
-                      icon = <Twitter className="text-indigo-500" size={24} />;
-                      break;
-                    case "linkedin":
-                      icon = <Linkedin className="text-indigo-500" size={24} />;
-                      break;
-                    case "instagram":
-                      icon = (
-                        <Instagram className="text-indigo-500" size={24} />
-                      );
-                      break;
-                    case "facebook":
-                      icon = <Facebook className="text-indigo-500" size={24} />;
-                      break;
-                    case "youtube":
-                      icon = <Youtube className="text-indigo-500" size={24} />;
-                      break;
-                    default:
-                      icon = null;
-                  }
-                } else {
-                  switch (template.type) {
-                    case "blog":
-                      icon = <FileText className="text-indigo-500" size={24} />;
-                      break;
-                    case "email":
-                      icon = <Mail className="text-indigo-500" size={24} />;
-                      break;
-                    case "video":
-                      icon = <Video className="text-indigo-500" size={24} />;
-                      break;
-                    case "marketing":
-                      icon = (
-                        <MessageSquare className="text-indigo-500" size={24} />
-                      );
-                      break;
-                    default:
-                      icon = (
-                        <PenSquare className="text-indigo-500" size={24} />
-                      );
-                  }
-                }
-
-                return (
-                  <div
-                    key={template.id}
-                    className="relative bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-                  >
-                    {/* Favorite Button */}
-                    <button
-                      className="absolute top-4 right-4 text-gray-400 hover:text-yellow-500"
-                      onClick={() => toggleFavorite(template.id)}
-                    >
-                      {isFavorite ? (
-                        <Star
-                          className="fill-yellow-400 text-yellow-400"
-                          size={20}
-                        />
-                      ) : (
-                        <StarOff size={20} />
-                      )}
-                    </button>
-
-                    {/* New Badge */}
-                    {template.new && (
-                      <span className="absolute top-4 left-4 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                        New
-                      </span>
-                    )}
-
-                    {/* Premium Badge */}
-                    {template.premium && (
-                      <span className="absolute top-4 left-4 bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                        Premium
-                      </span>
-                    )}
-
-                    <div className="mb-4 mt-2">{icon}</div>
-
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {template.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                      {template.description}
-                    </p>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">
-                        {template.tokens} token{template.tokens > 1 ? "s" : ""}
-                      </span>
-
-                      <button
-                        className={`px-4 py-2 rounded-md text-sm font-medium ${
-                          template.premium && userPlan === "Free"
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
-                        }`}
-                        onClick={() => handleTemplateSelect(template.id)}
-                        disabled={template.premium && userPlan === "Free"}
-                      >
-                        Use Template
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="col-span-3 text-center py-12">
-                <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Search size={32} className="text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
-                  No templates found
-                </h3>
-                <p className="text-gray-500">
-                  Try adjusting your search or filter criteria
-                </p>
-              </div>
-            )}
-          </div>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
+          <p className="text-gray-500 mt-1">
+            Choose a template to repurpose your content
+          </p>
         </div>
+
+        <div className="flex items-center space-x-4">
+          {/* Search */}
+          <div className="relative w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Premium Filter */}
+          <button
+            className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm ${
+              showPremium
+                ? "bg-indigo-50 text-indigo-600"
+                : "bg-gray-100 text-gray-600"
+            }`}
+            onClick={() => setShowPremium(!showPremium)}
+          >
+            <Filter size={16} />
+            <span>{showPremium ? "Showing All" : "Hide Premium"}</span>
+          </button>
+
+          {/* Create Custom Template Button */}
+          <Button
+            variant="primary"
+            size="md"
+            className="rounded-md px-4 shadow-sm hover:shadow-md transition-all duration-200 flex items-center"
+            onClick={handleCreateCustomTemplate}
+          >
+            <Plus size={16} className="mr-2" />
+            Custom Template
+          </Button>
+        </div>
+      </div>
+
+      {/* Categories */}
+      <div className="flex space-x-2 mb-8 overflow-x-auto pb-2">
+        {CATEGORIES.map((category) => (
+          <button
+            key={category.id}
+            className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap ${
+              selectedCategory === category.id
+                ? "bg-indigo-100 text-indigo-700"
+                : "bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+            onClick={() => setSelectedCategory(category.id)}
+          >
+            {category.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Templates Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {isLoading ? (
+          // Loading skeletons
+          Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm animate-pulse"
+              >
+                <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6 mb-6"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-8 bg-gray-200 rounded w-24"></div>
+                  <div className="h-8 bg-gray-200 rounded w-8"></div>
+                </div>
+              </div>
+            ))
+        ) : filteredTemplates.length > 0 ? (
+          filteredTemplates.map((template) => {
+            const isFavorite = userTemplates.some(
+              (ut) => ut.id === template.id && ut.favorite
+            );
+
+            // Determine the platform icon
+            let PlatformIcon = null;
+            if (template.platform) {
+              switch (template.platform) {
+                case "twitter":
+                  PlatformIcon = Twitter;
+                  break;
+                case "linkedin":
+                  PlatformIcon = Linkedin;
+                  break;
+                case "instagram":
+                  PlatformIcon = Instagram;
+                  break;
+                case "facebook":
+                  PlatformIcon = Facebook;
+                  break;
+                case "youtube":
+                  PlatformIcon = Youtube;
+                  break;
+                default:
+                  break;
+              }
+            } else {
+              // Assign an icon based on type
+              switch (template.type) {
+                case "blog":
+                  PlatformIcon = FileText;
+                  break;
+                case "email":
+                  PlatformIcon = Mail;
+                  break;
+                case "video":
+                  PlatformIcon = Video;
+                  break;
+                case "marketing":
+                  PlatformIcon = MessageSquare;
+                  break;
+                default:
+                  PlatformIcon = PenSquare;
+                  break;
+              }
+            }
+
+            return (
+              <div
+                key={template.id}
+                className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 relative"
+              >
+                {/* New Indicator */}
+                {template.new && (
+                  <span className="absolute top-4 right-4 bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
+                    NEW
+                  </span>
+                )}
+
+                {/* Premium Indicator */}
+                {template.premium && (
+                  <span className="absolute top-4 right-4 bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-full">
+                    PRO
+                  </span>
+                )}
+
+                <div className="mb-4 flex items-center space-x-2">
+                  {PlatformIcon && (
+                    <PlatformIcon className="h-5 w-5 text-indigo-500" />
+                  )}
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {template.title}
+                  </h3>
+                </div>
+
+                <p className="text-gray-600 mb-6 min-h-[3rem]">
+                  {template.description}
+                </p>
+
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <button
+                      className="mr-2 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center border border-gray-200 hover:bg-gray-50"
+                      onClick={() => handleTemplateSelect(template.id)}
+                    >
+                      Use Template
+                    </button>
+                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      {template.tokens} token{template.tokens > 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  <button
+                    className="text-gray-400 hover:text-indigo-500 focus:outline-none"
+                    onClick={() => toggleFavorite(template.id)}
+                    aria-label={
+                      isFavorite ? "Remove from favorites" : "Add to favorites"
+                    }
+                  >
+                    {isFavorite ? (
+                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    ) : (
+                      <StarOff className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="col-span-3 py-12 text-center">
+            <p className="text-gray-500 mb-2">No templates found.</p>
+            <p className="text-gray-400 text-sm">
+              Try adjusting your search or filters.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

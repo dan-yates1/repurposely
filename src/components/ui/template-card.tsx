@@ -6,9 +6,10 @@ interface TemplateCardProps {
   description: string;
   type?: 'social' | 'blog' | 'email' | 'video';
   icon?: ReactNode;
+  onClick?: () => void;
 }
 
-export function TemplateCard({ title, description, type, icon }: TemplateCardProps) {
+export function TemplateCard({ title, description, type, icon, onClick }: TemplateCardProps) {
   const getIcon = () => {
     if (icon) return icon;
     
@@ -27,15 +28,15 @@ export function TemplateCard({ title, description, type, icon }: TemplateCardPro
   };
 
   return (
-    <div className="bg-gray-50 p-6 rounded-lg">
+    <div 
+      className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer" 
+      onClick={onClick}
+    >
       <div className="mb-4">
         {getIcon()}
       </div>
       <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-      <p className="text-sm text-gray-600 mb-4">{description}</p>
-      <button className="px-4 py-2 bg-indigo-100 text-indigo-600 rounded-md text-sm font-medium">
-        Use
-      </button>
+      <p className="text-gray-500">{description}</p>
     </div>
   );
 }
