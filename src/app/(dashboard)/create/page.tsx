@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -17,13 +17,16 @@ import {
   Twitter,
   Linkedin,
   BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { TemplateSelectionCard } from "@/components/ui/template-selection-card";
 import { SourceTabs } from "@/components/ui/source-tabs";
 import { OutputSettings } from "@/components/ui/output-settings";
+import { ContentQualityCard } from "@/components/ui/content-quality-card";
 import { useTokens } from "@/hooks/useTokens";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { OperationType } from "@/lib/token-service";
+import { ContentAnalysisService, ContentQualityMetrics } from "@/lib/content-analysis-service";
 
 export default function Create() {
   const router = useRouter();
@@ -43,6 +46,9 @@ export default function Create() {
   const [isUploading, setIsUploading] = useState(false);
   const [contentSource, setContentSource] = useState("text");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [qualityMetrics, setQualityMetrics] = useState<ContentQualityMetrics | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisTarget, setAnalysisTarget] = useState<"original" | "repurposed">("repurposed");
   const { canPerformOperation, recordTokenTransaction, tokenUsage } =
     useTokens();
 
@@ -404,8 +410,120 @@ export default function Create() {
   const handleReset = () => {
     setOriginalContent("");
     setRepurposedContent("");
+    setSelectedTemplate(null);
     setFile(null);
   };
+
+  const analyzeContentQuality = useCallback(async () => {
+    // Don't analyze if no content to analyze
+    if (!originalContent && !repurposedContent) {
+      toast.error("Please enter or generate content to analyze");
+      return;
+    }
+
+    // Use repurposed content if available, otherwise use original content
+    const contentToAnalyze = analysisTarget === "repurposed" ? repurposedContent : originalContent;
+    
+    // If the selected content type is not available, show an error
+    if (!contentToAnalyze) {
+      toast.error(`No ${analysisTarget} content available to analyze`);
+      return;
+    }
+    
+    // Check if user has enough tokens
+    if (!canPerformOperation("CONTENT_ANALYSIS" as OperationType)) {
+      toast.error("You don't have enough tokens. Please upgrade your subscription.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    
+    try {
+      // Get the content type based on selected template
+      const contentType = selectedTemplate || 'general';
+      
+      // Call the content analysis service
+      const metrics = await ContentAnalysisService.analyzeContent(contentToAnalyze, contentType);
+      
+      // Update state with the analysis results
+      setQualityMetrics(metrics);
+      
+      // Record token usage
+      await recordTokenTransaction("CONTENT_ANALYSIS" as OperationType);
+      
+      toast.success("Content analyzed successfully!");
+    } catch (error) {
+      console.error("Error analyzing content:", error);
+      toast.error("Failed to analyze content. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [
+    originalContent, 
+    repurposedContent, 
+    analysisTarget, 
+    canPerformOperation, 
+    selectedTemplate, 
+    recordTokenTransaction,
+    setIsAnalyzing,
+    setQualityMetrics
+  ]);
+
+  // Effect to re-analyze content when analysis target changes
+  useEffect(() => {
+    // Only re-analyze if we already have metrics and we're not currently analyzing
+    if (qualityMetrics && !isAnalyzing && 
+        ((analysisTarget === "original" && originalContent) || 
+        (analysisTarget === "repurposed" && repurposedContent))) {
+      // Only analyze if we have content to analyze
+      const currentContent = analysisTarget === "original" ? originalContent : repurposedContent;
+      
+      if (currentContent) {
+        // We need to call the function directly here instead of using the callback
+        // to avoid the infinite loop
+        (async () => {
+          // Don't analyze if no content to analyze
+          if (!originalContent && !repurposedContent) {
+            return;
+          }
+
+          // Use repurposed content if available, otherwise use original content
+          const contentToAnalyze = analysisTarget === "repurposed" ? repurposedContent : originalContent;
+          
+          // If the selected content type is not available, return
+          if (!contentToAnalyze) {
+            return;
+          }
+          
+          // Check if user has enough tokens
+          if (!canPerformOperation("CONTENT_ANALYSIS" as OperationType)) {
+            return;
+          }
+
+          setIsAnalyzing(true);
+          
+          try {
+            // Get the content type based on selected template
+            const contentType = selectedTemplate || 'general';
+            
+            // Call the content analysis service
+            const metrics = await ContentAnalysisService.analyzeContent(contentToAnalyze, contentType);
+            
+            // Update state with the analysis results
+            setQualityMetrics(metrics);
+            
+            // Record token usage
+            await recordTokenTransaction("CONTENT_ANALYSIS" as OperationType);
+          } catch (error) {
+            console.error("Error analyzing content:", error);
+          } finally {
+            setIsAnalyzing(false);
+          }
+        })();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisTarget]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -728,6 +846,24 @@ export default function Create() {
             </button>
 
             <button
+              onClick={analyzeContentQuality}
+              disabled={isAnalyzing || (!originalContent && !repurposedContent)}
+              className="w-full py-3 bg-white border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center mb-3"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing Content Quality...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Analyze Content Quality
+                </>
+              )}
+            </button>
+
+            <button
               onClick={handleReset}
               className="w-full py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
             >
@@ -736,6 +872,85 @@ export default function Create() {
           </div>
         </div>
       </div>
+
+      {(qualityMetrics || isAnalyzing) && (
+        <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">Content Quality Analysis</h2>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Analyzing:</span>
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setAnalysisTarget("original")}
+                  disabled={!originalContent || isAnalyzing}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    analysisTarget === "original"
+                      ? "bg-indigo-600 text-white"
+                      : "text-gray-700 hover:bg-gray-200"
+                  } ${(!originalContent || isAnalyzing) ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  Original
+                </button>
+                <button
+                  onClick={() => setAnalysisTarget("repurposed")}
+                  disabled={!repurposedContent || isAnalyzing}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    analysisTarget === "repurposed"
+                      ? "bg-indigo-600 text-white"
+                      : "text-gray-700 hover:bg-gray-200"
+                  } ${(!repurposedContent || isAnalyzing) ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  Repurposed
+                </button>
+              </div>
+              <button
+                onClick={analyzeContentQuality}
+                disabled={isAnalyzing || 
+                  (analysisTarget === "original" && !originalContent) || 
+                  (analysisTarget === "repurposed" && !repurposedContent)}
+                className="flex items-center justify-center px-3 py-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 text-sm font-medium disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Refresh
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-700">
+              {analysisTarget === "original" ? (
+                <>
+                  <span className="font-medium">Analyzing original content:</span> This analysis provides insights on your source content before repurposing.
+                </>
+              ) : (
+                <>
+                  <span className="font-medium">Analyzing repurposed content:</span> This analysis provides insights on how your content performs after being repurposed.
+                </>
+              )}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Each analysis costs 2 tokens. You have {tokenUsage?.tokensRemaining || 0} tokens remaining.
+            </p>
+          </div>
+          
+          {qualityMetrics ? (
+            <ContentQualityCard metrics={qualityMetrics} isLoading={isAnalyzing} />
+          ) : (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+            </div>
+          )}
+        </div>
+      )}
 
       {repurposedContent && (
         <div className="bg-white p-6 rounded-lg border border-gray-200">

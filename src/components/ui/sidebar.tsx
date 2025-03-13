@@ -65,13 +65,13 @@ export function Sidebar() {
 
     getUserInfo();
 
-    // Close dropdown when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
+    // Add a click outside handler for the dropdown
+    function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
-    };
-
+    }
+    
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -91,19 +91,22 @@ export function Sidebar() {
 
   // Save sidebar collapsed state to localStorage when it changes
   const toggleSidebar = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
+    setIsCollapsed(!isCollapsed);
+    setIsDropdownOpen(false);
     // Only access localStorage in browser environment
     if (typeof window !== 'undefined') {
-      localStorage.setItem('sidebarCollapsed', String(newState));
+      localStorage.setItem('sidebarCollapsed', String(!isCollapsed));
     }
   };
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
       toast.success('Signed out successfully');
-      router.push('/');
+      router.push('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
@@ -203,12 +206,18 @@ export function Sidebar() {
       </div>
 
       {/* User Profile */}
-      <div className={`${isCollapsed ? 'px-2' : 'px-3'} pt-3 border-t border-gray-200`} ref={dropdownRef}>
+      <div className={`${isCollapsed ? 'px-2' : 'px-3'} pt-3 border-t border-gray-200 relative`} ref={dropdownRef}>
         <button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className={`w-full flex ${isCollapsed ? 'justify-center' : 'items-center'} px-3 py-2 rounded-md hover:bg-gray-100`}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            setIsDropdownOpen(!isDropdownOpen);
+          }}
+          className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center' : 'items-center'} px-3 py-2 rounded-md hover:bg-gray-100 relative`}
+          type="button" // Explicitly set button type
+          aria-haspopup="true"
+          aria-expanded={isDropdownOpen}
         >
-          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 mr-3">
+          <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 ${isCollapsed ? 'mb-1' : 'mr-3'}`}>
             {userInitial}
           </div>
           {!isCollapsed && (
@@ -222,15 +231,37 @@ export function Sidebar() {
             </div>
           )}
         </button>
-
+        
         {isDropdownOpen && (
-          <div className={`mt-2 ${isCollapsed ? 'ml-16' : 'w-full'} bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200 absolute`}>
+          <div 
+            className={`absolute z-50 py-1 bg-white rounded-md shadow-lg border border-gray-200 w-48 ${isCollapsed ? 'left-full ml-2' : 'right-0'} bottom-12`}
+            role="menu"
+            aria-orientation="vertical"
+          >
+            <div className="px-4 py-2 border-b border-gray-100">
+              <p className="text-sm font-medium text-gray-700">{userName || 'User'}</p>
+              <p className="text-xs text-gray-500">
+                <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
+                  {userPlan} Plan
+                </span>
+              </p>
+            </div>
+            <Link href="/settings" className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <div className="flex items-center">
+                <Settings size={16} className="mr-2" />
+                Settings
+              </div>
+            </Link>
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              role="menuitem"
+              type="button"
             >
-              <LogOut size={16} className="mr-2" />
-              Sign out
+              <div className="flex items-center">
+                <LogOut size={16} className="mr-2" />
+                Sign out
+              </div>
             </button>
           </div>
         )}

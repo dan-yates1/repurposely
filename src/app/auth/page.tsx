@@ -76,10 +76,9 @@ export default function AuthPage() {
       
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-xl shadow-xl relative z-10 border border-gray-100 animate-fadeIn">
         <div className="text-center">
-          <div className="flex justify-center mb-4 animate-slideDown">
-            <Logo className="w-12 h-12" />
+          <div className="mb-6 animate-slideDown text-center">
+            <Logo text={true} large={true} className="inline-block" />
           </div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 animate-slideDown" style={{ animationDelay: "0.1s" }}>ContentRemix</h1>
           <p className="mt-2 text-gray-600 animate-slideDown" style={{ animationDelay: "0.2s" }}>Sign in to create amazing content</p>
         </div>
 

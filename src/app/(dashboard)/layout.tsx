@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Logo } from "@/components/ui/logo";
 
 export default function DashboardLayout({
   children,
@@ -30,11 +31,8 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-medium mb-2">Loading...</h2>
-          <p className="text-gray-500">Please wait while we load your dashboard.</p>
-        </div>
+      <div className="bg-white mx-auto flex items-center justify-center h-screen">
+          <Logo />
       </div>
     );
   }

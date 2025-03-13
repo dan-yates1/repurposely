@@ -233,7 +233,7 @@ export default function Settings() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {/* Free Plan */}
-            <div className={`border ${subscription.tier === 'FREE' ? 'border-2 border-green-500' : 'border-gray-200'} rounded-lg p-4 ${subscription.tier === 'FREE' ? 'relative' : ''}`}>
+            <div className={`border ${subscription.tier === 'FREE' ? 'border-2 border-green-500' : 'border-gray-200'} rounded-lg p-4 ${subscription.tier === 'FREE' ? 'relative' : ''} flex flex-col h-full`}>
               {subscription.tier === 'FREE' && (
                 <span className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
                   CURRENT
@@ -241,18 +241,18 @@ export default function Settings() {
               )}
               <h4 className="text-lg font-medium text-gray-900 mb-2">Free</h4>
               <p className="text-3xl font-bold text-gray-900 mb-2">$0<span className="text-lg font-normal text-gray-800">/mo</span></p>
-              <ul className="space-y-2 mb-4">
+              <ul className="space-y-2 mb-4 flex-grow">
                 <li className="text-sm text-gray-800">✓ 50 tokens per month</li>
                 <li className="text-sm text-gray-800">✓ Basic content formats</li>
                 <li className="text-sm text-gray-800">✓ Standard repurposing</li>
               </ul>
-              <Button variant="outline" className="w-full" disabled={subscription.tier === 'FREE'}>
+              <Button variant="outline" className="w-full mt-auto" disabled={subscription.tier === 'FREE'}>
                 {subscription.tier === 'FREE' ? 'Current Plan' : 'Downgrade'}
               </Button>
             </div>
             
             {/* Pro Plan */}
-            <div className={`border ${subscription.tier === 'PRO' ? 'border-2 border-indigo-500' : 'border-gray-200'} rounded-lg p-4 relative`}>
+            <div className={`border ${subscription.tier === 'PRO' ? 'border-2 border-indigo-500' : 'border-gray-200'} rounded-lg p-4 relative flex flex-col h-full`}>
               {subscription.tier === 'PRO' && (
                 <span className="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
                   CURRENT
@@ -263,19 +263,19 @@ export default function Settings() {
               </span>
               <h4 className="text-lg font-medium text-gray-900 mb-2">Pro</h4>
               <p className="text-3xl font-bold text-gray-900 mb-2">$19<span className="text-lg font-normal text-gray-800">/mo</span></p>
-              <ul className="space-y-2 mb-4">
+              <ul className="space-y-2 mb-4 flex-grow">
                 <li className="text-sm text-gray-800">✓ 500 tokens per month</li>
                 <li className="text-sm text-gray-800">✓ All content formats</li>
                 <li className="text-sm text-gray-800">✓ Advanced repurposing</li>
                 <li className="text-sm text-gray-800">✓ Priority support</li>
               </ul>
-              <Button variant={subscription.tier === 'PRO' ? 'outline' : 'primary'} className="w-full" disabled={subscription.tier === 'PRO'}>
+              <Button variant={subscription.tier === 'PRO' ? 'outline' : 'primary'} className="w-full mt-auto" disabled={subscription.tier === 'PRO'}>
                 {subscription.tier === 'PRO' ? 'Current Plan' : subscription.tier === 'ENTERPRISE' ? 'Downgrade' : 'Upgrade'}
               </Button>
             </div>
             
             {/* Enterprise Plan */}
-            <div className={`border ${subscription.tier === 'ENTERPRISE' ? 'border-2 border-purple-500' : 'border-gray-200'} rounded-lg p-4 ${subscription.tier === 'ENTERPRISE' ? 'relative' : ''}`}>
+            <div className={`border ${subscription.tier === 'ENTERPRISE' ? 'border-2 border-purple-500' : 'border-gray-200'} rounded-lg p-4 ${subscription.tier === 'ENTERPRISE' ? 'relative' : ''} flex flex-col h-full`}>
               {subscription.tier === 'ENTERPRISE' && (
                 <span className="absolute top-0 right-0 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
                   CURRENT
@@ -283,14 +283,14 @@ export default function Settings() {
               )}
               <h4 className="text-lg font-medium text-gray-900 mb-2">Enterprise</h4>
               <p className="text-3xl font-bold text-gray-900 mb-2">$49<span className="text-lg font-normal text-gray-800">/mo</span></p>
-              <ul className="space-y-2 mb-4">
+              <ul className="space-y-2 mb-4 flex-grow">
                 <li className="text-sm text-gray-800">✓ 2000 tokens per month</li>
                 <li className="text-sm text-gray-800">✓ All content formats</li>
                 <li className="text-sm text-gray-800">✓ Advanced repurposing</li>
                 <li className="text-sm text-gray-800">✓ Dedicated support</li>
                 <li className="text-sm text-gray-800">✓ API access</li>
               </ul>
-              <Button variant={subscription.tier === 'ENTERPRISE' ? 'outline' : 'primary'} className="w-full" disabled={subscription.tier === 'ENTERPRISE'}>
+              <Button variant={subscription.tier === 'ENTERPRISE' ? 'outline' : 'primary'} className="w-full mt-auto" disabled={subscription.tier === 'ENTERPRISE'}>
                 {subscription.tier === 'ENTERPRISE' ? 'Current Plan' : 'Upgrade'}
               </Button>
             </div>
