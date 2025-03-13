@@ -1,91 +1,74 @@
-import { Copy, Edit, Trash2, FileText, Twitter, Linkedin, BookOpen, Mail, Video } from 'lucide-react';
+import { Copy, Edit, Trash2 } from 'lucide-react';
+import React from 'react';
 
 interface HistoryCardProps {
   id?: string;
   title: string;
-  content: string;
+  description: string;
   date: string;
-  type: string;
   status: 'published' | 'draft';
-  onClick?: () => void;
-  onAction?: (action: 'edit' | 'delete') => void;
+  icon?: React.ReactNode;
+  onCopy?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export function HistoryCard({
-  // id is used by the parent component but not directly in this component
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  id,
   title,
-  content,
+  description,
   date,
-  type,
   status,
-  onClick,
-  onAction
+  icon,
+  onCopy,
+  onEdit,
+  onDelete
 }: HistoryCardProps) {
-  const getIcon = () => {
-    const lowerType = type.toLowerCase();
-    if (lowerType.includes('twitter') || lowerType.includes('social media')) {
-      return <Twitter className="text-indigo-500" size={20} />;
-    } else if (lowerType.includes('linkedin')) {
-      return <Linkedin className="text-indigo-500" size={20} />;
-    } else if (lowerType.includes('blog') || lowerType.includes('post')) {
-      return <BookOpen className="text-indigo-500" size={20} />;
-    } else if (lowerType.includes('email')) {
-      return <Mail className="text-indigo-500" size={20} />;
-    } else if (lowerType.includes('video')) {
-      return <Video className="text-indigo-500" size={20} />;
-    } else {
-      return <FileText className="text-indigo-500" size={20} />;
-    }
-  };
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="p-4 hover:bg-gray-50 transition-colors">
       <div className="flex items-start">
         <div className="flex-shrink-0 mr-3">
-          {getIcon()}
+          {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start mb-1">
             <div className="flex items-center">
-              <h3 className="text-base font-medium text-gray-900 mr-2">{title}</h3>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
+              <h3 className="text-sm font-medium text-gray-900 truncate mr-2">{title}</h3>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                 status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
               }`}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+                {status === 'published' ? 'Published' : 'Draft'}
               </span>
             </div>
-            <div className="text-sm text-gray-500">{date}</div>
+            <span className="text-xs text-gray-500">{date}</span>
           </div>
-          <p className="text-sm text-gray-600 mb-3">{content}</p>
+          <p className="text-sm text-gray-500 mb-2 line-clamp-2">{description}</p>
           <div className="flex space-x-2">
-            {onClick && (
-              <button 
-                onClick={onClick}
-                className="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded flex items-center"
+            {onCopy && (
+              <button
+                onClick={onCopy}
+                className="inline-flex items-center p-1 text-xs font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-indigo-500"
+                title="Copy to clipboard"
               >
-                <Copy className="w-3 h-3 mr-1" />
-                View
+                <Copy size={16} />
               </button>
             )}
-            {onAction && (
-              <>
-                <button 
-                  onClick={() => onAction('edit')}
-                  className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded flex items-center"
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Edit
-                </button>
-                <button 
-                  onClick={() => onAction('delete')}
-                  className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded flex items-center"
-                >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Delete
-                </button>
-              </>
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="inline-flex items-center p-1 text-xs font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-indigo-500"
+                title="Edit content"
+              >
+                <Edit size={16} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="inline-flex items-center p-1 text-xs font-medium text-red-700 bg-white rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-red-500"
+                title="Delete content"
+              >
+                <Trash2 size={16} />
+              </button>
             )}
           </div>
         </div>

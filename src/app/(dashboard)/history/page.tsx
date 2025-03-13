@@ -92,14 +92,6 @@ export default function History() {
     router.push(`/content/${id}`);
   };
 
-  const handleCardAction = (id: string, action: "edit" | "delete") => {
-    if (action === "edit") {
-      router.push(`/create?edit=${id}`);
-    } else if (action === "delete") {
-      deleteContent(id);
-    }
-  };
-
   const deleteContent = async (id: string) => {
     try {
       const { error } = await supabase
@@ -118,6 +110,28 @@ export default function History() {
       console.error("Error deleting content:", error);
       toast.error("Failed to delete content");
     }
+  };
+
+  const getContentTypeIcon = (contentType: string) => {
+    switch (contentType) {
+      case "Blog Post":
+        return <BookOpen className="text-blue-500" />;
+      case "Social Media":
+        return <Twitter className="text-indigo-500" />;
+      case "Email":
+        return <Mail className="text-purple-500" />;
+      default:
+        return <FileText className="text-green-500" />;
+    }
+  };
+
+  const handleCopyContent = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast.success("Content copied to clipboard");
+  };
+
+  const handleDeleteContent = (id: string) => {
+    deleteContent(id);
   };
 
   // Filter content history based on active tab and search query
@@ -304,22 +318,22 @@ export default function History() {
               {filteredHistory.map((item) => (
                 <HistoryCard
                   key={item.id}
-                  id={item.id}
                   title={
                     item.original_content.length > 50
                       ? item.original_content.substring(0, 50) + "..."
                       : item.original_content
                   }
-                  content={
+                  description={
                     item.repurposed_content.length > 100
                       ? item.repurposed_content.substring(0, 100) + "..."
                       : item.repurposed_content
                   }
                   date={new Date(item.created_at).toLocaleDateString()}
-                  type={item.content_type}
                   status={item.status || "draft"}
-                  onClick={() => handleCardClick(item.id)}
-                  onAction={(action) => handleCardAction(item.id, action)}
+                  icon={getContentTypeIcon(item.content_type)}
+                  onCopy={() => handleCopyContent(item.repurposed_content)}
+                  onEdit={() => handleCardClick(item.id)}
+                  onDelete={() => handleDeleteContent(item.id)}
                 />
               ))}
             </div>
