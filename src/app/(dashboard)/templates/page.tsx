@@ -20,9 +20,12 @@ import {
   PenSquare,
   Video,
   Plus,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { TemplatePreviewModal } from "@/components/ui/template-preview-modal";
+import { CustomTemplateModal } from "@/components/ui/custom-template-modal";
 
 // Define template categories
 const CATEGORIES = [
@@ -207,19 +210,28 @@ export default function Templates() {
   const [filteredTemplates, setFilteredTemplates] =
     useState<Template[]>(TEMPLATES);
   const [userTemplates, setUserTemplates] = useState<Template[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showPremium, setShowPremium] = useState(true);
   const [userPlan, setUserPlan] = useState<string>("Free");
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  // State for modals
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isCustomTemplateModalOpen, setIsCustomTemplateModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   usePageTitle("Templates");
 
   useEffect(() => {
     // Check user and get their plan
     const getUserInfo = async () => {
+      setIsLoading(true);
       try {
         const { data } = await supabase.auth.getUser();
         if (data.user) {
+          setUserId(data.user.id);
+          
           // Fetch user subscription plan
           const { data: subscriptionData } = await supabase
             .from("user_subscriptions")
@@ -241,20 +253,38 @@ export default function Templates() {
           ).map((template) => ({ ...template, favorite: true }));
 
           setUserTemplates(randomFavorites);
+          
+          // Load custom templates from localStorage
+          loadCustomTemplates();
         } else {
           router.push("/auth");
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     getUserInfo();
   }, [router]);
 
+  // Load custom templates from localStorage
+  const loadCustomTemplates = () => {
+    try {
+      const savedTemplates = localStorage.getItem('customTemplates');
+      if (savedTemplates) {
+        const parsedTemplates = JSON.parse(savedTemplates);
+        setCustomTemplates(parsedTemplates);
+      }
+    } catch (error) {
+      console.error('Error loading custom templates:', error);
+    }
+  };
+
   // Filter templates based on search query and category
   useEffect(() => {
-    let filtered = [...TEMPLATES];
+    let filtered = [...TEMPLATES, ...customTemplates];
 
     // Filter by search query
     if (searchQuery) {
@@ -287,7 +317,7 @@ export default function Templates() {
     }
 
     setFilteredTemplates(filtered);
-  }, [searchQuery, selectedCategory, userTemplates, showPremium]);
+  }, [searchQuery, selectedCategory, userTemplates, showPremium, customTemplates]);
 
   // Toggle favorite status for a template
   const toggleFavorite = (templateId: string) => {
@@ -304,7 +334,7 @@ export default function Templates() {
         return updated;
       } else {
         // Template doesn't exist in user templates, add it as favorite
-        const template = TEMPLATES.find((t) => t.id === templateId);
+        const template = [...TEMPLATES, ...customTemplates].find((t) => t.id === templateId);
         if (template) {
           return [...prev, { ...template, favorite: true }];
         }
@@ -317,7 +347,9 @@ export default function Templates() {
 
   // Handle template selection
   const handleTemplateSelect = (templateId: string) => {
-    const template = TEMPLATES.find((t) => t.id === templateId);
+    const template = [...TEMPLATES, ...customTemplates].find((t) => t.id === templateId);
+
+    if (!template) return;
 
     if (template?.premium && userPlan === "Free") {
       toast.error("This template requires a Pro or Enterprise subscription");
@@ -328,6 +360,15 @@ export default function Templates() {
     router.push(`/create?template=${templateId}`);
   };
 
+  // Open preview modal for a template
+  const handlePreviewTemplate = (templateId: string) => {
+    const template = [...TEMPLATES, ...customTemplates].find((t) => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setIsPreviewModalOpen(true);
+    }
+  };
+
   // Create custom template
   const handleCreateCustomTemplate = () => {
     if (userPlan === "Free") {
@@ -335,7 +376,12 @@ export default function Templates() {
       return;
     }
 
-    router.push("/templates/custom");
+    setIsCustomTemplateModalOpen(true);
+  };
+
+  // Save custom template
+  const handleSaveCustomTemplate = (template: Template) => {
+    setCustomTemplates(prev => [...prev, template]);
   };
 
   return (
@@ -434,6 +480,7 @@ export default function Templates() {
             const isFavorite = userTemplates.some(
               (ut) => ut.id === template.id && ut.favorite
             );
+            const isCustom = template.id.startsWith('custom-');
 
             // Determine the platform icon
             let PlatformIcon = null;
@@ -497,6 +544,13 @@ export default function Templates() {
                   </span>
                 )}
 
+                {/* Custom Template Indicator */}
+                {isCustom && (
+                  <span className="absolute top-4 right-4 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">
+                    CUSTOM
+                  </span>
+                )}
+
                 <div className="mb-4 flex items-center space-x-2">
                   {PlatformIcon && (
                     <PlatformIcon className="h-5 w-5 text-indigo-500" />
@@ -511,12 +565,19 @@ export default function Templates() {
                 </p>
 
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center">
+                  <div className="flex items-center space-x-2">
                     <button
-                      className="mr-2 text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center border border-gray-200 hover:bg-gray-50"
+                      className="text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center border border-gray-200 hover:bg-gray-50"
                       onClick={() => handleTemplateSelect(template.id)}
                     >
                       Use Template
+                    </button>
+                    <button
+                      className="text-gray-700 px-2 py-2 rounded-md text-sm font-medium flex items-center border border-gray-200 hover:bg-gray-50"
+                      onClick={() => handlePreviewTemplate(template.id)}
+                      aria-label="Preview template"
+                    >
+                      <Eye size={16} />
                     </button>
                     <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                       {template.tokens} token{template.tokens > 1 ? "s" : ""}
@@ -549,6 +610,25 @@ export default function Templates() {
           </div>
         )}
       </div>
+
+      {/* Template Preview Modal */}
+      {selectedTemplate && (
+        <TemplatePreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          template={selectedTemplate}
+        />
+      )}
+
+      {/* Custom Template Modal */}
+      {userId && (
+        <CustomTemplateModal
+          isOpen={isCustomTemplateModalOpen}
+          onClose={() => setIsCustomTemplateModalOpen(false)}
+          onSave={handleSaveCustomTemplate}
+          userId={userId}
+        />
+      )}
     </div>
   );
 }
