@@ -130,14 +130,14 @@ export default function Dashboard() {
       <Toaster position="top-right" />
       
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500">Welcome back to your content workspace</p>
         </div>
-        <div className="flex space-x-4">
-          <Search className="w-64" />
-          <Button onClick={() => router.push("/create")} variant="primary">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto space-y-2 sm:space-y-0 sm:space-x-4">
+          <Search className="w-full sm:w-64" />
+          <Button onClick={() => router.push("/create")} variant="primary" className="w-full sm:w-auto">
             Create New
           </Button>
         </div>
@@ -223,7 +223,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Quick Create
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {templates.map((template) => (
                 <TemplateCard
                   key={template.id}
@@ -241,7 +241,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Performance Overview
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <AnalyticsCard
                 title="Content Created"
                 value={analyticsData.contentCreated.toString()}
@@ -273,11 +273,11 @@ export default function Dashboard() {
 
       {/* Analytics Tab */}
       {activeTab === "analytics" && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Content Analytics
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <AnalyticsCard
               title="Content Created"
               value={analyticsData.contentCreated.toString()}
@@ -312,7 +312,7 @@ export default function Dashboard() {
       {/* Templates Tab */}
       {activeTab === "templates" && (
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {templates.map((template) => (
               <TemplateCard
                 key={template.id}

@@ -72,6 +72,33 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .max-w-7xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Add padding at the bottom for mobile to avoid content being hidden behind the navigation */
+  body {
+    padding-bottom: 4rem;
+  }
+  
+  /* Make sure content doesn't overflow on small screens */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile touch improvements */
+@media (hover: none) {
+  /* Increase touch targets on mobile */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 .recent-activity-card {
   padding: 1rem;
   margin-bottom: 1.5rem;

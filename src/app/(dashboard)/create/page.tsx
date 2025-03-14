@@ -1,419 +1,181 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Loader2,
-  Send,
-  Copy,
-  Download,
-  FileAudio,
-  Upload,
-  Trash2,
-  Twitter,
-  Linkedin,
-  BookOpen,
   Sparkles,
 } from "lucide-react";
-import { TemplateSelectionCard } from "@/components/ui/template-selection-card";
-import { SourceTabs } from "@/components/ui/source-tabs";
-import { OutputSettings } from "@/components/ui/output-settings";
-import { ContentQualityCard } from "@/components/ui/content-quality-card";
 import { useTokens } from "@/hooks/useTokens";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { OperationType } from "@/lib/token-service";
 import { ContentAnalysisService, ContentQualityMetrics } from "@/lib/content-analysis-service";
+import { CreationSteps } from "@/components/ui/creation-steps";
+import { TemplateSelectionStep } from "@/components/ui/template-selection-step";
+import { ContentInputStep } from "@/components/ui/content-input-step";
+import { OutputSettingsStep } from "@/components/ui/output-settings-step";
+import { ImageGeneratorStep } from "@/components/ui/image-generator-step";
+import { ResultsStep } from "@/components/ui/results-step";
 
 export default function Create() {
-  const router = useRouter();
-  usePageTitle("Create Content");
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Page title
+  usePageTitle("Create New Content");
+  
+  // Step management
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // Content state
   const [originalContent, setOriginalContent] = useState("");
   const [repurposedContent, setRepurposedContent] = useState("");
-  const [contentType, setContentType] = useState("twitter");
+  const [loading, setLoading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  
+  // File handling
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // Output settings
   const [tone, setTone] = useState("professional");
-  const [targetAudience, setTargetAudience] = useState("general");
   const [contentLength, setContentLength] = useState("medium");
   const [includeKeywords, setIncludeKeywords] = useState(false);
   const [keywords, setKeywords] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [contentSource, setContentSource] = useState("text");
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [targetAudience, setTargetAudience] = useState("");
+  
+  // Quality analysis
   const [qualityMetrics, setQualityMetrics] = useState<ContentQualityMetrics | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisTarget, setAnalysisTarget] = useState<"original" | "repurposed">("repurposed");
-  const { canPerformOperation, recordTokenTransaction, tokenUsage } =
-    useTokens();
+  
+  // Token management
+  const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
 
-  const sourceTabs = [
-    { id: "text", label: "Text Input" },
-    { id: "upload", label: "Upload File" },
-    { id: "url", label: "URL Import" },
-  ];
-
-  useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-      } else {
-        router.push("/auth");
-      }
-    };
-
-    checkUser();
-  }, [router]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const templateId = params.get("template");
-
-    if (templateId) {
-      const templateMap: Record<string, string> = {
-        // Social Media Templates
-        "twitter-thread": "twitter",
-        "linkedin-post": "linkedin",
-        "instagram-caption": "instagram",
-        "facebook-post": "facebook",
-        "tiktok-script": "tiktok",
-
-        // Blog & Article Templates
-        "blog-post": "blog",
-        listicle: "listicle",
-        "how-to-guide": "how-to-guide",
-        "content-summary": "content-summary",
-
-        // Email Templates
-        newsletter: "newsletter",
-        "welcome-email": "welcome-email",
-        "promotional-email": "promotional-email",
-
-        // Video Templates
-        "youtube-script": "youtube",
-        "video-description": "video-description",
-        "podcast-outline": "podcast-outline",
-
-        // Marketing Templates
-        "product-description": "product-description",
-        "ad-copy": "ad-copy",
-        "press-release": "press-release",
-      };
-
-      const contentType = templateMap[templateId] || templateId;
-
-      handleTemplateSelect(contentType);
-
-      // Scroll to the content input section after template selection
-      setTimeout(() => {
-        const contentSection = document.getElementById("content-input-section");
-        if (contentSection) {
-          contentSection.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 500);
-    }
-  }, []);
-
+  // Handle template selection
   const handleTemplateSelect = (template: string) => {
     setSelectedTemplate(template);
-    setContentType(template);
-
-    switch (template) {
-      case "twitter":
-        setTone("conversational");
-        setContentLength("short");
-        setTargetAudience("general");
-        break;
-      case "linkedin":
-        setTone("professional");
-        setContentLength("medium");
-        setTargetAudience("professionals");
-        break;
-      case "blog":
-        setTone("informative");
-        setContentLength("long");
-        setTargetAudience("readers");
-        break;
-      case "instagram":
-        setTone("casual");
-        setContentLength("medium");
-        setTargetAudience("followers");
-        break;
-      case "facebook":
-        setTone("friendly");
-        setContentLength("medium");
-        setTargetAudience("friends");
-        break;
-      case "youtube":
-        setTone("engaging");
-        setContentLength("long");
-        setTargetAudience("viewers");
-        break;
-    }
-
-    toast.success(
-      `${
-        template.charAt(0).toUpperCase() + template.slice(1)
-      } template selected`
-    );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!originalContent.trim()) {
-      toast.error("Please enter some content to repurpose");
-      return;
-    }
-
-    if (!selectedTemplate) {
-      toast.error("Please select a template first");
-      return;
-    }
-
-    const operationType: OperationType = "TEXT_REPURPOSE";
-
-    if (!canPerformOperation(operationType)) {
-      toast.error(
-        "You do not have enough tokens for this operation. Please upgrade your plan or wait for your tokens to reset."
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      let processed = `Repurposed content for ${contentType}:\n\n`;
-
-      switch (contentType) {
-        case "twitter":
-          const tweetMaxLength = 280;
-          let remainingContent = originalContent;
-          let tweetCount = 1;
-
-          while (remainingContent.length > 0 && tweetCount <= 10) {
-            let tweetContent = "";
-
-            if (remainingContent.length <= tweetMaxLength) {
-              tweetContent = remainingContent;
-              remainingContent = "";
-            } else {
-              let breakPoint = -1;
-              for (let i = tweetMaxLength; i > tweetMaxLength * 0.7; i--) {
-                if (
-                  i < remainingContent.length &&
-                  [".", "!", "?", "\n"].includes(remainingContent[i])
-                ) {
-                  breakPoint = i + 1;
-                  break;
-                }
-              }
-
-              if (breakPoint === -1) {
-                const lastSpace = remainingContent.lastIndexOf(
-                  " ",
-                  tweetMaxLength
-                );
-                if (lastSpace > tweetMaxLength * 0.5) {
-                  breakPoint = lastSpace + 1;
-                } else {
-                  breakPoint = tweetMaxLength;
-                }
-              }
-
-              tweetContent = remainingContent.substring(0, breakPoint).trim();
-              remainingContent = remainingContent.substring(breakPoint).trim();
-            }
-
-            processed += `Tweet ${tweetCount}: ${tweetContent}`;
-
-            if (remainingContent.length > 0) {
-              processed += "\n\n";
-            }
-
-            tweetCount++;
-          }
-
-          if (remainingContent.length > 0) {
-            processed +=
-              "\n\n(Additional content truncated due to Twitter character limits)";
-          }
-          break;
-        case "linkedin":
-          processed += `# Professional LinkedIn Post\n\n${originalContent}\n\n#thoughtleadership #professional #networking`;
-          break;
-        case "blog":
-          processed += `# Blog Title\n\n## Introduction\n\n${originalContent.substring(
-            0,
-            originalContent.length / 3
-          )}\n\n## Main Content\n\n${originalContent.substring(
-            originalContent.length / 3,
-            (originalContent.length * 2) / 3
-          )}\n\n## Conclusion\n\n${originalContent.substring(
-            (originalContent.length * 2) / 3
-          )}\n\nThank you for reading!`;
-          break;
-        case "instagram":
-          processed += `${originalContent.substring(0, 150)}\n\n`;
-          processed += "#instagram #content #socialmedia #trending #follow";
-          break;
-        case "facebook":
-          processed += `${originalContent}\n\nWhat do you think? Let me know in the comments below! 👇`;
-          break;
-        case "youtube":
-          processed += `📺 VIDEO DESCRIPTION\n\n${originalContent}\n\n⏱️ TIMESTAMPS:\n0:00 Introduction\n1:30 Main Topic\n5:45 Summary\n\n🔗 LINKS:\n- Website: https://example.com\n- Follow me on Twitter: @username\n\n#youtube #video #content`;
-          break;
-        default:
-          processed += originalContent;
-      }
-
-      setRepurposedContent(processed);
-
-      if (user) {
-        try {
-          const historyData = {
-            user_id: user.id,
-            original_content: originalContent,
-            repurposed_content: processed,
-            content_type: contentType,
-            tone: tone,
-            target_audience: targetAudience,
-            metadata: JSON.stringify({ content_length: contentLength }),
-          };
-
-          console.log("Saving to history:", historyData);
-
-          const { error } = await supabase
-            .from("content_history")
-            .insert(historyData);
-
-          if (error) {
-            console.error("Error saving to history:", JSON.stringify(error));
-            toast.error(
-              `Failed to save to history: ${error.message || "Unknown error"}`
-            );
-          } else {
-            toast.success("Content saved to history");
-
-            try {
-              const { data: contentData } = await supabase
-                .from("content_history")
-                .select("id")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: false })
-                .limit(1);
-
-              const contentId =
-                contentData && contentData.length > 0
-                  ? contentData[0].id
-                  : undefined;
-
-              await recordTokenTransaction(operationType, contentId);
-              toast.success(
-                `Used ${tokenUsage ? "1" : "1"} token for content generation`
-              );
-            } catch (tokenError) {
-              console.error("Error recording token transaction:", tokenError);
-            }
-          }
-        } catch (err) {
-          console.error("Exception saving to history:", err);
-          toast.error("Failed to save to history due to an unexpected error");
-        }
-      }
-    } catch (error) {
-      console.error("Error processing content:", error);
-      toast.error("Failed to process content");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Handle file upload and transcription
   const handleFileUpload = async () => {
     if (!file) return;
 
-    const operationType: OperationType = "VIDEO_PROCESSING";
-
-    if (!canPerformOperation(operationType)) {
-      toast.error(
-        "You do not have enough tokens for video processing. Please upgrade your plan or wait for your tokens to reset."
-      );
+    // Check if user has enough tokens for transcription
+    if (!canPerformOperation("VIDEO_PROCESSING" as OperationType)) {
+      toast.error("You don't have enough tokens to process this file. Please upgrade your subscription.");
       return;
     }
 
     setIsUploading(true);
     setUploadProgress(0);
 
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + 5;
-      });
-    }, 100);
-
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Create FormData to send file
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const transcription = `This is a transcription of the uploaded ${file.name} file. In a real application, this would be the actual transcribed content from your audio or video file.`;
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          const newProgress = prev + 10;
+          return newProgress >= 90 ? 90 : newProgress;
+        });
+      }, 500);
 
-      setOriginalContent(transcription);
+      // Call transcription API
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (user?.id) {
-        try {
-          await recordTokenTransaction(operationType);
-          toast.success(
-            `Used ${tokenUsage ? "10" : "10"} tokens for video processing`
-          );
-        } catch (tokenError) {
-          console.error("Error recording token transaction:", tokenError);
-        }
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
       }
+
+      const data = await response.json();
+      setOriginalContent(data.transcript);
+
+      // Record token transaction
+      await recordTokenTransaction("VIDEO_PROCESSING" as OperationType);
 
       toast.success("File transcribed successfully");
     } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error("Failed to upload file");
+      console.error("Transcription error:", error);
+      toast.error("Failed to transcribe file. Please try again.");
     } finally {
-      clearInterval(interval);
-      setUploadProgress(100);
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
+      setIsUploading(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+  // Handle content generation
+  const handleSubmit = async () => {
+    if (!originalContent.trim() || !selectedTemplate) {
+      toast.error("Please enter content and select a template");
+      return;
+    }
+
+    // Check if user has enough tokens
+    if (!canPerformOperation("TEXT_REPURPOSE" as OperationType)) {
+      toast.error("You don't have enough tokens. Please upgrade your subscription.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Call repurpose API (simulated for now)
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Generate placeholder content based on template
+      let placeholderContent = "";
+      switch (selectedTemplate) {
+        case "twitter":
+          placeholderContent = `🧵 Thread on ${originalContent.substring(0, 30)}...\n\n1/ ${originalContent.substring(0, 200)}...\n\n2/ [Rest of thread]\n\n3/ Key takeaways: [Summary]\n\n4/ If you found this valuable, please RT & follow for more insights on ${targetAudience ? targetAudience : "this topic"}!\n\n#ContentCreation`;
+          break;
+        case "linkedin":
+          placeholderContent = `🔍 ${originalContent.substring(0, 30)}...\n\nI've been thinking about this topic recently and wanted to share some insights.\n\n${originalContent.substring(0, 300)}...\n\nWhat are your thoughts on this? Share in the comments below!\n\n#${selectedTemplate} #ProfessionalDevelopment`;
+          break;
+        default:
+          placeholderContent = `# ${originalContent.substring(0, 30)}...\n\n${originalContent.substring(0, 400)}...\n\n## Key Points\n\n- Point 1\n- Point 2\n- Point 3\n\n## Conclusion\n\nThank you for reading! Let me know your thoughts in the comments.`;
+      }
+
+      setRepurposedContent(placeholderContent);
+
+      // Record token transaction
+      await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
+
+      toast.success("Content repurposed successfully");
+      
+      // Automatically move to the final step
+      setCurrentStep(4);
+    } catch (error) {
+      console.error("Error repurposing content:", error);
+      toast.error("Failed to repurpose content. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Handle copying content to clipboard
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(repurposedContent);
     toast.success("Copied to clipboard");
   };
 
+  // Handle resetting the form
   const handleReset = () => {
     setOriginalContent("");
     setRepurposedContent("");
     setSelectedTemplate(null);
     setFile(null);
+    setCurrentStep(0);
+    setQualityMetrics(null);
   };
 
+  // Handle content quality analysis
   const analyzeContentQuality = useCallback(async () => {
     // Don't analyze if no content to analyze
     if (!originalContent && !repurposedContent) {
@@ -464,9 +226,7 @@ export default function Create() {
     analysisTarget, 
     canPerformOperation, 
     selectedTemplate, 
-    recordTokenTransaction,
-    setIsAnalyzing,
-    setQualityMetrics
+    recordTokenTransaction
   ]);
 
   // Effect to re-analyze content when analysis target changes
@@ -475,59 +235,100 @@ export default function Create() {
     if (qualityMetrics && !isAnalyzing && 
         ((analysisTarget === "original" && originalContent) || 
         (analysisTarget === "repurposed" && repurposedContent))) {
-      // Only analyze if we have content to analyze
-      const currentContent = analysisTarget === "original" ? originalContent : repurposedContent;
-      
-      if (currentContent) {
-        // We need to call the function directly here instead of using the callback
-        // to avoid the infinite loop
-        (async () => {
-          // Don't analyze if no content to analyze
-          if (!originalContent && !repurposedContent) {
-            return;
-          }
-
-          // Use repurposed content if available, otherwise use original content
-          const contentToAnalyze = analysisTarget === "repurposed" ? repurposedContent : originalContent;
-          
-          // If the selected content type is not available, return
-          if (!contentToAnalyze) {
-            return;
-          }
-          
-          // Check if user has enough tokens
-          if (!canPerformOperation("CONTENT_ANALYSIS" as OperationType)) {
-            return;
-          }
-
-          setIsAnalyzing(true);
-          
-          try {
-            // Get the content type based on selected template
-            const contentType = selectedTemplate || 'general';
-            
-            // Call the content analysis service
-            const metrics = await ContentAnalysisService.analyzeContent(contentToAnalyze, contentType);
-            
-            // Update state with the analysis results
-            setQualityMetrics(metrics);
-            
-            // Record token usage
-            await recordTokenTransaction("CONTENT_ANALYSIS" as OperationType);
-          } catch (error) {
-            console.error("Error analyzing content:", error);
-          } finally {
-            setIsAnalyzing(false);
-          }
-        })();
-      }
+      analyzeContentQuality();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisTarget]);
 
+  // Define the steps for our creation workflow
+  const steps = [
+    {
+      id: "template",
+      title: "Choose Template",
+      content: (
+        <TemplateSelectionStep
+          selectedTemplate={selectedTemplate}
+          onTemplateSelect={handleTemplateSelect}
+        />
+      ),
+    },
+    {
+      id: "content",
+      title: "Add Content",
+      content: (
+        <ContentInputStep
+          originalContent={originalContent}
+          setOriginalContent={setOriginalContent}
+          file={file}
+          setFile={setFile}
+          handleFileUpload={handleFileUpload}
+          isUploading={isUploading}
+          uploadProgress={uploadProgress}
+        />
+      ),
+    },
+    {
+      id: "settings",
+      title: "Output Settings",
+      content: (
+        <OutputSettingsStep
+          tone={tone}
+          setTone={setTone}
+          contentLength={contentLength}
+          setContentLength={setContentLength}
+          includeKeywords={includeKeywords}
+          setIncludeKeywords={setIncludeKeywords}
+          keywords={keywords}
+          setKeywords={setKeywords}
+          targetAudience={targetAudience}
+          setTargetAudience={setTargetAudience}
+        />
+      ),
+    },
+    {
+      id: "images",
+      title: "Add Images",
+      content: (
+        <ImageGeneratorStep contentId={undefined} />
+      ),
+    },
+    {
+      id: "results",
+      title: "Results",
+      content: (
+        loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-12 w-12 text-indigo-600 animate-spin mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Generating your content...</h3>
+            <p className="text-sm text-gray-500">This may take a few moments</p>
+          </div>
+        ) : repurposedContent ? (
+          <ResultsStep
+            repurposedContent={repurposedContent}
+            handleCopyToClipboard={handleCopyToClipboard}
+            handleReset={handleReset}
+            qualityMetrics={qualityMetrics}
+            isAnalyzing={isAnalyzing}
+            analyzeContentQuality={analyzeContentQuality}
+            analysisTarget={analysisTarget}
+            setAnalysisTarget={setAnalysisTarget}
+            originalContent={originalContent}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Click &quot;Generate&quot; to create your content</h3>
+            <p className="text-sm text-gray-500">Make sure you&apos;ve filled in all the required fields</p>
+          </div>
+        )
+      ),
+    },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
+      
+      {/* Breadcrumb navigation */}
       <div className="flex items-center mb-6">
         <Link
           href="/dashboard"
@@ -539,454 +340,29 @@ export default function Create() {
         <span className="text-gray-700 text-sm font-medium">New Content</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        Create New Content
-      </h1>
-
-      <div className="mb-8">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Select Template
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Social Media Templates */}
-          <TemplateSelectionCard
-            title="Twitter Thread"
-            description="Create engaging multi-tweet content"
-            icon={<Twitter className="h-6 w-6 text-indigo-600" />}
-            onClick={() => handleTemplateSelect("twitter")}
-            isSelected={selectedTemplate === "twitter"}
-          />
-          <TemplateSelectionCard
-            title="LinkedIn Post"
-            description="Professional content for your network"
-            icon={<Linkedin className="h-6 w-6 text-indigo-600" />}
-            onClick={() => handleTemplateSelect("linkedin")}
-            isSelected={selectedTemplate === "linkedin"}
-          />
-          <TemplateSelectionCard
-            title="Instagram Caption"
-            description="Visual content with engaging captions"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-indigo-600"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-              </svg>
-            }
-            onClick={() => handleTemplateSelect("instagram")}
-            isSelected={selectedTemplate === "instagram"}
-          />
-          <TemplateSelectionCard
-            title="Facebook Post"
-            description="Shareable content for your audience"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-indigo-600"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-              </svg>
-            }
-            onClick={() => handleTemplateSelect("facebook")}
-            isSelected={selectedTemplate === "facebook"}
-          />
-          <TemplateSelectionCard
-            title="Blog Article"
-            description="Long-form content with introduction"
-            icon={<BookOpen className="h-6 w-6 text-indigo-600" />}
-            onClick={() => handleTemplateSelect("blog")}
-            isSelected={selectedTemplate === "blog"}
-          />
-          <TemplateSelectionCard
-            title="YouTube Description"
-            description="SEO-friendly video descriptions"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-indigo-600"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
-                <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
-              </svg>
-            }
-            onClick={() => handleTemplateSelect("youtube")}
-            isSelected={selectedTemplate === "youtube"}
-          />
-        </div>
-        <div className="mt-4 text-center">
-          <Link
-            href="/templates"
-            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-          >
-            View all templates in the library →
-          </Link>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Create New Content
+        </h1>
+        
+        {/* Token usage indicator */}
+        <div className="flex items-center bg-indigo-50 px-3 py-1.5 rounded-md">
+          <Sparkles className="h-4 w-4 text-indigo-500 mr-1.5" />
+          <span className="text-sm font-medium text-indigo-700">
+            {tokenUsage?.tokensRemaining || 0} tokens remaining
+          </span>
         </div>
       </div>
 
-      {selectedTemplate && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Template Information
-          </h2>
-          <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100">
-            <h3 className="text-sm font-medium text-indigo-800 mb-2">
-              {selectedTemplate === "twitter" && "Twitter Thread Template"}
-              {selectedTemplate === "linkedin" && "LinkedIn Post Template"}
-              {selectedTemplate === "blog" && "Blog Article Template"}
-              {selectedTemplate === "instagram" && "Instagram Post Template"}
-              {selectedTemplate === "facebook" && "Facebook Post Template"}
-              {selectedTemplate === "youtube" && "YouTube Description Template"}
-            </h3>
-            <p className="text-xs text-indigo-700 mb-2">
-              {selectedTemplate === "twitter" &&
-                "Create an engaging Twitter thread with multiple tweets. Optimal length is 2-5 tweets."}
-              {selectedTemplate === "linkedin" &&
-                "Create a professional LinkedIn post to share with your network. Focus on industry insights and professional achievements."}
-              {selectedTemplate === "blog" &&
-                "Create a comprehensive blog article with introduction, body, and conclusion. Include headings and subheadings for better readability."}
-              {selectedTemplate === "instagram" &&
-                "Create a captivating Instagram caption that complements your visual content. Focus on storytelling and engagement."}
-              {selectedTemplate === "facebook" &&
-                "Create a Facebook post that encourages sharing and comments. Include questions or calls to action to boost engagement."}
-              {selectedTemplate === "youtube" &&
-                "Create an SEO-friendly YouTube video description with timestamps, links, and keywords to improve discoverability."}
-            </p>
-            {selectedTemplate === "twitter" && (
-              <div className="text-xs text-indigo-600">
-                Recommended: 280 characters per tweet, use emojis and hashtags
-              </div>
-            )}
-            {selectedTemplate === "linkedin" && (
-              <div className="text-xs text-indigo-600">
-                Recommended: 1300-2000 characters, professional tone, include a
-                call to action
-              </div>
-            )}
-            {selectedTemplate === "blog" && (
-              <div className="text-xs text-indigo-600">
-                Recommended: 1500+ words, include images, use subheadings every
-                300 words
-              </div>
-            )}
-            {selectedTemplate === "instagram" && (
-              <div className="text-xs text-indigo-600">
-                Recommended: 125-150 characters, 5-10 relevant hashtags, include
-                emojis
-              </div>
-            )}
-            {selectedTemplate === "facebook" && (
-              <div className="text-xs text-indigo-600">
-                Recommended: 40-80 characters, include an image or link, ask a
-                question
-              </div>
-            )}
-            {selectedTemplate === "youtube" && (
-              <div className="text-xs text-indigo-600">
-                Recommended: 200-300 words, include timestamps, links to related
-                content, and relevant keywords
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div
-        id="content-input-section"
-        className="bg-white p-6 rounded-lg border border-gray-200 mb-6"
-      >
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Content Source
-        </h2>
-
-        <SourceTabs
-          tabs={sourceTabs}
-          defaultTabId="text"
-          onTabChange={setContentSource}
+      {/* Main content area */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <CreationSteps 
+          steps={steps}
+          currentStep={currentStep}
+          setCurrentStep={setCurrentStep}
+          onComplete={handleSubmit}
         />
-
-        {contentSource === "text" && (
-          <div>
-            <textarea
-              value={originalContent}
-              onChange={(e) => setOriginalContent(e.target.value)}
-              placeholder="Type or paste your content here..."
-              className="w-full h-32 p-3 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            ></textarea>
-          </div>
-        )}
-
-        {contentSource === "upload" && (
-          <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center">
-            <FileAudio className="h-8 w-8 text-gray-400 mb-2" />
-            <p className="text-sm text-gray-500 mb-4">
-              Upload audio or video file for transcription
-            </p>
-
-            <input
-              type="file"
-              id="file-upload"
-              className="hidden"
-              accept="audio/*,video/*"
-              onChange={handleFileChange}
-            />
-
-            {!file ? (
-              <label
-                htmlFor="file-upload"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer"
-              >
-                Select File
-              </label>
-            ) : (
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-700 truncate max-w-xs">
-                    {file.name}
-                  </span>
-                  <button
-                    onClick={() => setFile(null)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {isUploading ? (
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                    <div
-                      className="bg-indigo-600 h-2.5 rounded-full"
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleFileUpload}
-                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload & Transcribe
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {contentSource === "url" && (
-          <div>
-            <input
-              type="url"
-              placeholder="Enter URL to import content..."
-              className="w-full p-3 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <p className="mt-2 text-xs text-gray-500">
-              We&apos;ll extract the main content from the provided URL
-            </p>
-          </div>
-        )}
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="md:col-span-2">
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <OutputSettings
-              tone={tone}
-              setTone={setTone}
-              contentLength={contentLength}
-              setContentLength={setContentLength}
-              includeKeywords={includeKeywords}
-              setIncludeKeywords={setIncludeKeywords}
-              keywords={keywords}
-              setKeywords={setKeywords}
-              targetAudience={targetAudience}
-              setTargetAudience={setTargetAudience}
-            />
-          </div>
-        </div>
-
-        <div className="md:col-span-1">
-          <div className="bg-white p-6 rounded-lg border border-gray-200 h-full flex flex-col">
-            <button
-              onClick={handleSubmit}
-              disabled={loading || !originalContent.trim() || !selectedTemplate}
-              className="w-full py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed flex items-center justify-center mb-3"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Generate Content
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={analyzeContentQuality}
-              disabled={isAnalyzing || (!originalContent && !repurposedContent)}
-              className="w-full py-3 bg-white border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center mb-3"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing Content Quality...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Analyze Content Quality
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleReset}
-              className="w-full py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {(qualityMetrics || isAnalyzing) && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Content Quality Analysis</h2>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Analyzing:</span>
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setAnalysisTarget("original")}
-                  disabled={!originalContent || isAnalyzing}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    analysisTarget === "original"
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-700 hover:bg-gray-200"
-                  } ${(!originalContent || isAnalyzing) ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  Original
-                </button>
-                <button
-                  onClick={() => setAnalysisTarget("repurposed")}
-                  disabled={!repurposedContent || isAnalyzing}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                    analysisTarget === "repurposed"
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-700 hover:bg-gray-200"
-                  } ${(!repurposedContent || isAnalyzing) ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  Repurposed
-                </button>
-              </div>
-              <button
-                onClick={analyzeContentQuality}
-                disabled={isAnalyzing || 
-                  (analysisTarget === "original" && !originalContent) || 
-                  (analysisTarget === "repurposed" && !repurposedContent)}
-                className="flex items-center justify-center px-3 py-1 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 text-sm font-medium disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Refresh
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-          
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-700">
-              {analysisTarget === "original" ? (
-                <>
-                  <span className="font-medium">Analyzing original content:</span> This analysis provides insights on your source content before repurposing.
-                </>
-              ) : (
-                <>
-                  <span className="font-medium">Analyzing repurposed content:</span> This analysis provides insights on how your content performs after being repurposed.
-                </>
-              )}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Each analysis costs 2 tokens. You have {tokenUsage?.tokensRemaining || 0} tokens remaining.
-            </p>
-          </div>
-          
-          {qualityMetrics ? (
-            <ContentQualityCard metrics={qualityMetrics} isLoading={isAnalyzing} />
-          ) : (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {repurposedContent && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900">
-              Generated Content
-            </h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleCopyToClipboard}
-                className="p-2 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100"
-                title="Copy to clipboard"
-              >
-                <Copy className="h-5 w-5" />
-              </button>
-              <button
-                className="p-2 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100"
-                title="Download as text file"
-              >
-                <Download className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setRepurposedContent("")}
-                className="p-2 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100"
-                title="Clear"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 text-gray-700 rounded-md whitespace-pre-wrap max-h-[500px] overflow-y-auto">
-            {repurposedContent}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

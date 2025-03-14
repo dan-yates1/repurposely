@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTokens } from '@/hooks/useTokens';
 import toast from 'react-hot-toast';
@@ -15,6 +15,7 @@ export function Sidebar() {
   const [userInitial, setUserInitial] = useState<string>('U');
   const [userPlan, setUserPlan] = useState<string>('Free');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { 
     tokenUsage, 
@@ -99,6 +100,23 @@ export function Sidebar() {
     }
   };
 
+  // Function to toggle mobile sidebar
+  const toggleMobileSidebar = () => {
+    setIsMobileOpen(!isMobileOpen);
+  };
+
+  // Close mobile sidebar if screen size changes to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && isMobileOpen) { // 768px is typically md breakpoint in Tailwind
+        setIsMobileOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobileOpen]);
+
   const handleSignOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -130,142 +148,154 @@ export function Sidebar() {
   };
 
   return (
-    <div className={`h-full ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex flex-col py-4 transition-all duration-300 ease-in-out relative`}>
-      {/* Toggle Button */}
+    <>
+      {/* Mobile sidebar toggle button - visible only on mobile */}
       <button 
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1 shadow-md z-10 hover:bg-gray-50"
+        onClick={toggleMobileSidebar}
+        className="md:hidden fixed top-4 left-4 z-30 bg-white p-2 rounded-md shadow-md"
+        aria-label="Toggle sidebar"
       >
-        {isCollapsed ? 
-          <ChevronRight size={16} className="text-gray-500" /> : 
-          <ChevronLeft size={16} className="text-gray-500" />
-        }
+        {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Logo/Title */}
-      <div className={`${isCollapsed ? 'px-2' : 'px-4'} mb-6 flex justify-center`}>
-        <Logo text={!isCollapsed} />
-      </div>
-
-      {/* Main Navigation */}
-      <div className={`${isCollapsed ? 'px-2' : 'px-3'} space-y-1`}>
-        <Link href="/dashboard" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/dashboard')}`}>
-          <Home size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
-          {!isCollapsed && <span className="text-sm font-medium">Dashboard</span>}
-        </Link>
-        <Link href="/history" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/history')}`}>
-          <Clock size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
-          {!isCollapsed && <span className="text-sm font-medium">History</span>}
-        </Link>
-        <Link href="/templates" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/templates')}`}>
-          <PenSquare size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
-          {!isCollapsed && <span className="text-sm font-medium">Templates</span>}
-        </Link>
-        <Link href="/settings" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/settings')}`}>
-          <Settings size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
-          {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
-        </Link>
-      </div>
-
-      {/* Token Display */}
-      <div className={`mt-auto ${isCollapsed ? 'px-2' : 'px-3'} mb-4`}>
-        {tokensError ? (
-          <button onClick={() => router.push('/token-fix')} className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100`}>
-            <AlertCircle size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
-            {!isCollapsed && <span className="text-sm font-medium">Fix Token Issue</span>}
-          </button>
-        ) : (
-          <Link href="/dashboard" className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center justify-between'} px-3 py-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100`}>
-            <div className={`flex ${isCollapsed ? 'justify-center items-center' : 'items-center'}`}>
-              <Coins size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
-              {!isCollapsed && <span className="text-sm font-medium">Tokens</span>}
-            </div>
-            <span className={`text-sm font-medium ${isCollapsed ? 'mt-1' : ''}`}>
-              {tokensLoading ? (
-                <span className="inline-block w-6 h-3 bg-indigo-200 animate-pulse rounded"></span>
-              ) : tokenUsage ? (
-                tokenUsage.tokensRemaining
-              ) : (
-                '0'
-              )}
-            </span>
-          </Link>
-        )}
-
-        {/* Token initialization button - only shown when needed */}
-        {!tokenUsage && !tokensLoading && !tokensError && !isCollapsed && (
-          <div className="mt-2">
-            <button
-              onClick={handleInitializeTokens}
-              className="w-full py-2 px-3 text-sm bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
-            >
-              Initialize Tokens
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* User Profile */}
-      <div className={`${isCollapsed ? 'px-2' : 'px-3'} pt-3 border-t border-gray-200 relative`} ref={dropdownRef}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent event bubbling
-            setIsDropdownOpen(!isDropdownOpen);
-          }}
-          className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center' : 'items-center'} px-3 py-2 rounded-md hover:bg-gray-100 relative`}
-          type="button" // Explicitly set button type
-          aria-haspopup="true"
-          aria-expanded={isDropdownOpen}
+      {/* Sidebar container */}
+      <div className={`fixed md:relative h-full ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex flex-col py-4 transition-all duration-300 ease-in-out z-20 ${isMobileOpen ? 'left-0' : '-left-full md:left-0'}`}>
+        {/* Toggle Button - visible only on desktop */}
+        <button 
+          onClick={toggleSidebar}
+          className="hidden md:block absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1 shadow-md z-10 hover:bg-gray-50"
         >
-          <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 ${isCollapsed ? 'mb-1' : 'mr-3'}`}>
-            {userInitial}
-          </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-700 truncate">{userName || 'User'}</p>
-              <p className="text-xs text-gray-500 truncate">
-                <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
-                  {userPlan}
-                </span>
-              </p>
+          {isCollapsed ? 
+            <ChevronRight size={16} className="text-gray-500" /> : 
+            <ChevronLeft size={16} className="text-gray-500" />
+          }
+        </button>
+
+        {/* Logo/Title */}
+        <div className={`${isCollapsed ? 'px-2' : 'px-4'} mb-6 flex justify-center`}>
+          <Logo text={!isCollapsed} />
+        </div>
+
+        {/* Main Navigation */}
+        <div className={`${isCollapsed ? 'px-2' : 'px-3'} space-y-1`}>
+          <Link href="/dashboard" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/dashboard')}`}>
+            <Home size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+            {!isCollapsed && <span className="text-sm font-medium">Dashboard</span>}
+          </Link>
+          <Link href="/history" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/history')}`}>
+            <Clock size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+            {!isCollapsed && <span className="text-sm font-medium">History</span>}
+          </Link>
+          <Link href="/templates" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/templates')}`}>
+            <PenSquare size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+            {!isCollapsed && <span className="text-sm font-medium">Templates</span>}
+          </Link>
+          <Link href="/settings" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/settings')}`}>
+            <Settings size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+            {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
+          </Link>
+        </div>
+
+        {/* Token Display */}
+        <div className={`mt-auto ${isCollapsed ? 'px-2' : 'px-3'} mb-4`}>
+          {tokensError ? (
+            <button onClick={() => router.push('/token-fix')} className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100`}>
+              <AlertCircle size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+              {!isCollapsed && <span className="text-sm font-medium">Fix Token Issue</span>}
+            </button>
+          ) : (
+            <Link href="/dashboard" className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center justify-between'} px-3 py-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100`}>
+              <div className={`flex ${isCollapsed ? 'justify-center items-center' : 'items-center'}`}>
+                <Coins size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+                {!isCollapsed && <span className="text-sm font-medium">Tokens</span>}
+              </div>
+              <span className={`text-sm font-medium ${isCollapsed ? 'mt-1' : ''}`}>
+                {tokensLoading ? (
+                  <span className="inline-block w-6 h-3 bg-indigo-200 animate-pulse rounded"></span>
+                ) : tokenUsage ? (
+                  tokenUsage.tokensRemaining
+                ) : (
+                  '0'
+                )}
+              </span>
+            </Link>
+          )}
+
+          {/* Token initialization button - only shown when needed */}
+          {!tokenUsage && !tokensLoading && !tokensError && !isCollapsed && (
+            <div className="mt-2">
+              <button
+                onClick={handleInitializeTokens}
+                className="w-full py-2 px-3 text-sm bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
+              >
+                Initialize Tokens
+              </button>
             </div>
           )}
-        </button>
-        
-        {isDropdownOpen && (
-          <div 
-            className={`absolute z-50 py-1 bg-white rounded-md shadow-lg border border-gray-200 w-48 ${isCollapsed ? 'left-full ml-2' : 'right-0'} bottom-12`}
-            role="menu"
-            aria-orientation="vertical"
+        </div>
+
+        {/* User Profile */}
+        <div className={`${isCollapsed ? 'px-2' : 'px-3'} pt-3 border-t border-gray-200 relative`} ref={dropdownRef}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent event bubbling
+              setIsDropdownOpen(!isDropdownOpen);
+            }}
+            className={`w-full flex ${isCollapsed ? 'flex-col items-center justify-center' : 'items-center'} px-3 py-2 rounded-md hover:bg-gray-100 relative`}
+            type="button" // Explicitly set button type
+            aria-haspopup="true"
+            aria-expanded={isDropdownOpen}
           >
-            <div className="px-4 py-2 border-b border-gray-100">
-              <p className="text-sm font-medium text-gray-700">{userName || 'User'}</p>
-              <p className="text-xs text-gray-500">
-                <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
-                  {userPlan} Plan
-                </span>
-              </p>
+            <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 ${isCollapsed ? 'mb-1' : 'mr-3'}`}>
+              {userInitial}
             </div>
-            <Link href="/settings" className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <div className="flex items-center">
-                <Settings size={16} className="mr-2" />
-                Settings
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-700 truncate">{userName || 'User'}</p>
+                <p className="text-xs text-gray-500 truncate">
+                  <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
+                    {userPlan}
+                  </span>
+                </p>
               </div>
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              role="menuitem"
-              type="button"
+            )}
+          </button>
+          
+          {isDropdownOpen && (
+            <div 
+              className={`absolute z-50 py-1 bg-white rounded-md shadow-lg border border-gray-200 w-48 ${isCollapsed ? 'left-full ml-2' : 'right-0'} bottom-12`}
+              role="menu"
+              aria-orientation="vertical"
             >
-              <div className="flex items-center">
-                <LogOut size={16} className="mr-2" />
-                Sign out
+              <div className="px-4 py-2 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-700">{userName || 'User'}</p>
+                <p className="text-xs text-gray-500">
+                  <span className={userPlan !== 'Free' ? 'text-indigo-600 font-medium' : ''}>
+                    {userPlan} Plan
+                  </span>
+                </p>
               </div>
-            </button>
-          </div>
-        )}
+              <Link href="/settings" className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <div className="flex items-center">
+                  <Settings size={16} className="mr-2" />
+                  Settings
+                </div>
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                role="menuitem"
+                type="button"
+              >
+                <div className="flex items-center">
+                  <LogOut size={16} className="mr-2" />
+                  Sign out
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
