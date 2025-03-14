@@ -313,6 +313,7 @@ export default function Create() {
             analysisTarget={analysisTarget}
             setAnalysisTarget={setAnalysisTarget}
             originalContent={originalContent}
+            selectedTemplate={selectedTemplate}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-12">

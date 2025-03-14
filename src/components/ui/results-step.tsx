@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from 'react';
-import { Copy, Download, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { Copy, Download, Trash2, Sparkles, Loader2, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ContentQualityCard } from '@/components/ui/content-quality-card';
 import { ContentQualityMetrics } from '@/lib/content-analysis-service';
 import { useTokens } from '@/hooks/useTokens';
+import { PlatformPreviewTabs } from '@/components/ui/content-preview';
 
 interface ResultsStepProps {
   repurposedContent: string;
@@ -17,6 +18,7 @@ interface ResultsStepProps {
   analysisTarget: "original" | "repurposed";
   setAnalysisTarget: (target: "original" | "repurposed") => void;
   originalContent: string;
+  selectedTemplate?: string | null;
 }
 
 export function ResultsStep({
@@ -28,10 +30,12 @@ export function ResultsStep({
   analyzeContentQuality,
   analysisTarget,
   setAnalysisTarget,
-  originalContent
+  originalContent,
+  selectedTemplate
 }: ResultsStepProps) {
   const { tokenUsage } = useTokens();
   const [showAnalysis, setShowAnalysis] = useState(Boolean(qualityMetrics));
+  const [showPreview, setShowPreview] = useState(true);
 
   const handleDownload = () => {
     const element = document.createElement('a');
@@ -46,6 +50,30 @@ export function ResultsStep({
 
   return (
     <div className="space-y-6">
+      {/* Platform Preview */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-gray-900">
+            Platform Preview
+          </h2>
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100"
+            title={showPreview ? "Hide preview" : "Show preview"}
+          >
+            {showPreview ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+        </div>
+
+        {showPreview && (
+          <PlatformPreviewTabs 
+            content={repurposedContent} 
+            selectedTemplate={selectedTemplate || 'blog'} 
+          />
+        )}
+      </div>
+
+      {/* Generated Content */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium text-gray-900">
