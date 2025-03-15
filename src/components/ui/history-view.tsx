@@ -229,8 +229,8 @@ export function HistoryView({
             icon={<TrendingUp className="h-5 w-5 text-indigo-600" />}
             title="Content Growth"
             value="+25% from last month"
-            trend="15%"
-            trendUp={true}
+            change="15%"
+            isPositive={true}
           />
         </div>
       </div>

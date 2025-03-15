@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { FileAudio, MessageSquare, Link2, Upload, Trash2, Loader2 } from 'lucide-react';
+import { FileAudio, MessageSquare, Link2, Upload, Trash2 } from 'lucide-react';
 import { SourceTabs } from '@/components/ui/source-tabs';
 import toast from 'react-hot-toast';
 
@@ -55,7 +55,8 @@ export function ContentInputStep({
         toast.dismiss();
         toast.success("Content extracted from URL");
       }, 2000);
-    } catch (error) {
+    } catch (err) {
+      console.error("URL fetch error:", err);
       toast.error("Failed to fetch content from URL");
     }
   };
@@ -158,7 +159,7 @@ export function ContentInputStep({
               Extract Content
             </button>
             <p className="mt-2 text-xs text-gray-500">
-              We'll extract the main content from the provided URL
+              We&apos;ll extract the main content from the provided URL
             </p>
           </div>
         )}

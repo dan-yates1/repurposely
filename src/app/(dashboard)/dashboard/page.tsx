@@ -12,7 +12,6 @@ import { ContentCard } from "@/components/ui/content-card";
 import { TemplateCard } from "@/components/ui/template-card";
 import { AnalyticsCard } from "@/components/ui/analytics-card";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { useTokens } from "@/hooks/useTokens";
 import { AnalyticsMetricCard } from "@/components/ui/analytics-metric-card";
 import { TokenUsageCard } from "@/components/ui/token-usage-card";
 
@@ -37,7 +36,6 @@ export default function Dashboard() {
   const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  const { tokenUsage } = useTokens();
 
   // Define the fetchContentHistory function before useEffect
   const fetchContentHistory = async (userId: string) => {

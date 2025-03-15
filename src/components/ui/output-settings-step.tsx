@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from 'react';
 import { useTokens } from '@/hooks/useTokens';
 import { Sparkles } from 'lucide-react';
 
@@ -57,12 +56,9 @@ export function OutputSettingsStep({
     "Beginners",
     "Experts"
   ];
-  
-  const [audienceSuggestion, setAudienceSuggestion] = useState("");
 
   const handleAudienceSuggestionClick = (suggestion: string) => {
     setTargetAudience(suggestion);
-    setAudienceSuggestion("");
   };
   
   // Filter audience suggestions based on current input

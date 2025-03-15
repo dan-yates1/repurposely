@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -42,7 +42,7 @@ export default function History() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   // Fetch content history
-  const fetchContentHistory = async (userId: string) => {
+  const fetchContentHistory = useCallback(async (userId: string) => {
     try {
       setLoading(true);
       let query = supabase
@@ -94,7 +94,7 @@ export default function History() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedFormat, selectedTimeframe, sortOrder]);
 
   useEffect(() => {
     const getUserData = async () => {
@@ -109,7 +109,7 @@ export default function History() {
     };
 
     getUserData();
-  }, [selectedFormat, selectedTimeframe, sortOrder]);
+  }, [selectedFormat, selectedTimeframe, sortOrder, fetchContentHistory]);
 
   // Filter content by search query
   const filteredContent = contentHistory.filter((item) => {

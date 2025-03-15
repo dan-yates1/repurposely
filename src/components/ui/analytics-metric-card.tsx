@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ReactNode } from "react";
 
 export interface AnalyticsMetricCardProps {
   title: string;
@@ -8,6 +9,7 @@ export interface AnalyticsMetricCardProps {
   change?: string;
   isPositive?: boolean;
   description?: string;
+  icon?: ReactNode;
 }
 
 export function AnalyticsMetricCard({
@@ -16,11 +18,15 @@ export function AnalyticsMetricCard({
   change,
   isPositive = true,
   description,
+  icon,
 }: AnalyticsMetricCardProps) {
   return (
     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start mb-2">
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        <div className="flex items-center">
+          {icon && <div className="mr-2">{icon}</div>}
+          <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        </div>
         {change && (
           <div className={`flex items-center ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
             {isPositive ? (

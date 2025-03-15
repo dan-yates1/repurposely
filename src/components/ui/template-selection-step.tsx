@@ -1,6 +1,5 @@
 "use client";
 
-import { ReactNode } from 'react';
 import { Twitter, Linkedin, BookOpen } from 'lucide-react';
 import { TemplateSelectionCard } from '@/components/ui/template-selection-card';
 

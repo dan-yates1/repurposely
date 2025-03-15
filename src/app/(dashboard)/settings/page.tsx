@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import toast, { Toaster } from "react-hot-toast";
 import { 
@@ -113,10 +114,12 @@ export default function Settings() {
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6">
               <div className="flex items-center gap-3 mb-4">
                 {userAvatar ? (
-                  <img 
+                  <Image 
                     src={userAvatar} 
                     alt={userName}
-                    className="w-12 h-12 rounded-full"
+                    width={48}
+                    height={48}
+                    className="rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold">

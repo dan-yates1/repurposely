@@ -91,10 +91,7 @@ export default function Pricing() {
                   <span className="text-5xl font-bold text-indigo-600">$0</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
-                <div className="flex items-baseline mb-6">
-                  <span className="text-5xl font-bold text-indigo-600">50</span>
-                  <span className="text-gray-500 ml-2">tokens/month</span>
-                </div>
+                
                 <p className="text-gray-600 mb-8">
                   Perfect for getting started and trying out the platform.
                 </p>
@@ -174,16 +171,11 @@ export default function Pricing() {
             </div>
 
             {/* Pro Plan */}
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl relative">
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
-              <div className="absolute -top-4 inset-x-0 flex justify-center">
-                <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-semibold px-4 py-1 rounded-full uppercase tracking-wide shadow-md">
-                  Most Popular
-                </span>
-              </div>
-              <div className="p-8 pt-10">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+            <div className="bg-gradient-to-br from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl relative scale-105 border-2 border-indigo-400">
+              <div className="p-8 pt-10 bg-white">
+                <h3 className="text-xl font-bold text-indigo-700 mb-4 flex items-center">
                   Pro
+                  <span className="ml-2 text-xs bg-indigo-100 text-indigo-800 py-1 px-2 rounded-full">Recommended</span>
                 </h3>
                 <div className="flex items-baseline mb-2">
                   <span className="text-5xl font-bold text-indigo-600">
@@ -191,12 +183,7 @@ export default function Pricing() {
                   </span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
-                <div className="flex items-baseline mb-6">
-                  <span className="text-5xl font-bold text-indigo-600">
-                    500
-                  </span>
-                  <span className="text-gray-500 ml-2">tokens/month</span>
-                </div>
+
                 <p className="text-gray-600 mb-8">
                   For content creators and small teams who need more capacity.
                 </p>
@@ -300,12 +287,7 @@ export default function Pricing() {
                   </span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
-                <div className="flex items-baseline mb-6">
-                  <span className="text-5xl font-bold text-indigo-600">
-                    2000
-                  </span>
-                  <span className="text-gray-500 ml-2">tokens/month</span>
-                </div>
+                
                 <p className="text-gray-600 mb-8">
                   For agencies and large teams with high-volume needs.
                 </p>
@@ -423,7 +405,7 @@ export default function Pricing() {
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 1
               </div>
-              <h3 className="text-lg font-semibold mb-2">Text Repurpose</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Text Repurpose</h3>
               <p className="text-gray-600 mb-2">
                 Transform any text content into a new format
               </p>
@@ -436,7 +418,7 @@ export default function Pricing() {
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 2
               </div>
-              <h3 className="text-lg font-semibold mb-2">Quality Analysis</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Quality Analysis</h3>
               <p className="text-gray-600 mb-2">
                 Get AI feedback on content quality and suggestions
               </p>
@@ -449,7 +431,7 @@ export default function Pricing() {
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 5
               </div>
-              <h3 className="text-lg font-semibold mb-2">Image Generation</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Image Generation</h3>
               <p className="text-gray-600 mb-2">
                 Create images to complement your content
               </p>
@@ -462,7 +444,7 @@ export default function Pricing() {
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 10
               </div>
-              <h3 className="text-lg font-semibold mb-2">Video Processing</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Video Processing</h3>
               <p className="text-gray-600 mb-2">
                 Process and enhance video content
               </p>
@@ -473,12 +455,14 @@ export default function Pricing() {
           </div>
 
           <div className="bg-white p-8 rounded-xl shadow-md">
-            <h3 className="text-xl font-semibold mb-4 text-center">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 text-center">
               Token Usage Examples
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold mb-2">Social Media Manager</h4>
+                <h4 className="font-semibold text-gray-600 mb-2">
+                  Social Media Manager
+                </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li>• 30 text repurposes (30 tokens)</li>
                   <li>• 10 quality analyses (20 tokens)</li>
@@ -490,7 +474,9 @@ export default function Pricing() {
               </div>
 
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold mb-2">Content Creator</h4>
+                <h4 className="font-semibold text-gray-600 mb-2">
+                  Content Creator
+                </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li>• 200 text repurposes (200 tokens)</li>
                   <li>• 50 quality analyses (100 tokens)</li>
@@ -502,7 +488,9 @@ export default function Pricing() {
               </div>
 
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold mb-2">Marketing Agency</h4>
+                <h4 className="font-semibold text-gray-600 mb-2">
+                  Marketing Agency
+                </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li>• 800 text repurposes (800 tokens)</li>
                   <li>• 300 quality analyses (600 tokens)</li>
@@ -529,7 +517,7 @@ export default function Pricing() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">
                 Do unused tokens roll over?
               </h3>
               <p className="text-gray-600">
@@ -540,7 +528,7 @@ export default function Pricing() {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">
                 Can I upgrade my plan mid-month?
               </h3>
               <p className="text-gray-600">
@@ -550,7 +538,7 @@ export default function Pricing() {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">
                 What happens if I run out of tokens?
               </h3>
               <p className="text-gray-600">
@@ -561,7 +549,7 @@ export default function Pricing() {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">
                 Is there a limit to how many tokens I can use per day?
               </h3>
               <p className="text-gray-600">
