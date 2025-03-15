@@ -1,36 +1,41 @@
-import { ReactNode } from 'react';
+"use client";
 
-interface AnalyticsMetricCardProps {
-  icon: ReactNode;
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+
+export interface AnalyticsMetricCardProps {
   title: string;
   value: string;
-  trend?: string;
-  trendUp?: boolean;
+  change?: string;
+  isPositive?: boolean;
+  description?: string;
 }
 
 export function AnalyticsMetricCard({
-  icon,
   title,
   value,
-  trend,
-  trendUp
+  change,
+  isPositive = true,
+  description,
 }: AnalyticsMetricCardProps) {
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200">
-      <div className="flex items-center mb-2">
-        <div className="mr-3 bg-indigo-100 p-2 rounded-lg">
-          {icon}
-        </div>
-        <h3 className="text-sm font-medium text-gray-700">{title}</h3>
-      </div>
-      <div className="flex items-baseline">
-        <span className="text-xl font-semibold text-gray-900">{value}</span>
-        {trend && (
-          <span className={`ml-2 text-xs ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
-            {trendUp ? '+' : '-'}{trend}
-          </span>
+    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        {change && (
+          <div className={`flex items-center ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+            {isPositive ? (
+              <ArrowUpRight className="h-4 w-4 mr-1" />
+            ) : (
+              <ArrowDownRight className="h-4 w-4 mr-1" />
+            )}
+            <span className="text-xs font-medium">{change}</span>
+          </div>
         )}
       </div>
+      <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
+      {description && (
+        <p className="text-xs text-gray-500">{description}</p>
+      )}
     </div>
   );
 }

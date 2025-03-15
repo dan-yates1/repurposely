@@ -2,365 +2,465 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
 import toast, { Toaster } from "react-hot-toast";
+import { 
+  User, 
+  CreditCard, 
+  Bell, 
+  ShieldCheck, 
+  History,
+  ChevronRight,
+  LogOut,
+  Loader2,
+  ArrowRight
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs } from "@/components/ui/tabs";
-import { TokenUsageCard } from "@/components/ui/token-usage-card";
-import { TokenHistory } from "@/components/ui/token-history";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useTokens } from "@/hooks/useTokens";
+import { TokenHistoryCard } from "@/components/ui/token-history";
 
 export default function Settings() {
+  usePageTitle("Account Settings");
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
-  const [activeTab, setActiveTab] = useState("profile");
-  const [subscription, setSubscription] = useState({
-    tier: "FREE",
-    tokensAllocated: 50,
-    renewDate: "April 15, 2023"
-  });
-
-  // Set the page title
-  usePageTitle("Settings");
-
+  const { tokenUsage, transactionHistory, loading: tokensLoading } = useTokens();
+  const [user, setUser] = useState<{
+    id?: string;
+    email?: string;
+    user_metadata?: { full_name?: string; avatar_url?: string };
+    app_metadata?: { provider?: string };
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("account");
+  const [signingOut, setSigningOut] = useState(false);
+  
+  // Fetch user data
   useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        setEmail(session.user.email || "");
-        // In a real app, you would fetch user profile data here
-        setFullName("Alex Johnson");
-        setCompany("Repurposely Inc.");
-        
-        // Fetch subscription data
-        fetchSubscriptionData(session.user.id);
-      } else {
-        router.push("/auth");
+    const getUserData = async () => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          setUser(userData.user);
+        } else {
+          // Redirect to login if not authenticated
+          router.push("/auth");
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkUser();
+    getUserData();
   }, [router]);
 
-  const fetchSubscriptionData = async (userId: string) => {
+  // Handle sign out
+  const handleSignOut = async () => {
     try {
-      const { data: subscriptionData, error } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching subscription:', error);
-        return;
-      }
-      
-      if (subscriptionData) {
-        setSubscription({
-          tier: subscriptionData.subscription_tier.toUpperCase(),
-          tokensAllocated: subscriptionData.subscription_tier === 'PRO' ? 500 : 
-                          subscriptionData.subscription_tier === 'ENTERPRISE' ? 2000 : 50,
-          renewDate: subscriptionData.subscription_end_date ? 
-                    new Date(subscriptionData.subscription_end_date).toLocaleDateString('en-US', {
-                      month: 'long', day: 'numeric', year: 'numeric'
-                    }) : 'April 15, 2023'
-        });
-      }
-    } catch (err) {
-      console.error('Error in subscription fetch:', err);
-    }
-  };
-
-  const handleSaveChanges = async () => {
-    setLoading(true);
-    try {
-      // In a real app, you would update the user profile here
-      // For example: await updateUserProfile(user.id, { fullName, company });
-      // Using the user variable to fix the lint error
-      if (user) {
-        console.log(user.id);
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      toast.success("Profile updated successfully");
+      setSigningOut(true);
+      await supabase.auth.signOut();
+      router.push("/auth");
     } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
-    } finally {
-      setLoading(false);
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out. Please try again.");
+      setSigningOut(false);
     }
   };
 
-  const handlePasswordChange = async () => {
-    toast.success("Password reset link has been sent to your email");
-  };
+  // Settings tabs
+  const tabs = [
+    { id: "account", label: "Account", icon: <User className="h-5 w-5" /> },
+    { id: "tokens", label: "Token Usage", icon: <History className="h-5 w-5" /> },
+    { id: "subscription", label: "Subscription", icon: <CreditCard className="h-5 w-5" /> },
+    { id: "notifications", label: "Notifications", icon: <Bell className="h-5 w-5" /> },
+    { id: "security", label: "Security", icon: <ShieldCheck className="h-5 w-5" /> },
+  ];
 
-  const handleToggle2FA = async () => {
-    toast.success("Two-factor authentication enabled");
-  };
+  // Get user metadata
+  const userEmail = user?.email || "";
+  const userName = user?.user_metadata?.full_name || userEmail.split("@")[0];
+  const userAvatar = user?.user_metadata?.avatar_url || null;
+  const userProvider = user?.app_metadata?.provider || "email";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
-      
+
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-800">Manage your account settings and preferences</p>
+      <div className="flex items-center mb-6">
+        <Link
+          href="/dashboard"
+          className="text-gray-500 text-sm hover:text-gray-700"
+        >
+          Dashboard
+        </Link>
+        <span className="mx-2 text-gray-400">/</span>
+        <span className="text-gray-700 text-sm font-medium">Settings</span>
       </div>
 
-      {/* Settings Tabs */}
-      <div className="mb-8">
-        <Tabs
-          tabs={[
-            { id: "profile", label: "Profile" },
-            { id: "subscription", label: "Subscription" },
-            { id: "usage", label: "Usage" },
-            { id: "security", label: "Security" },
-          ]}
-          defaultTabId="profile"
-          onTabChange={setActiveTab}
-        />
-      </div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h1>
 
-      {/* Profile Tab */}
-      {activeTab === "profile" && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Profile Information
-          </h2>
-          <div className="mb-4">
-            <label
-              htmlFor="fullName"
-              className="block text-sm font-medium text-gray-900 mb-1"
-            >
-              Full Name
-            </label>
-            <input
-              type="text"
-              id="fullName"
-              className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-900 mb-1"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled
-            />
-            <p className="text-xs text-gray-800 mt-1">
-              Email cannot be changed. Contact support for assistance.
-            </p>
-          </div>
-          <div className="mb-6">
-            <label
-              htmlFor="company"
-              className="block text-sm font-medium text-gray-900 mb-1"
-            >
-              Company
-            </label>
-            <input
-              type="text"
-              id="company"
-              className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-            />
-          </div>
-          <div>
-            <Button
-              onClick={handleSaveChanges}
-              variant="primary"
-              className="w-full sm:w-auto"
-              disabled={loading}
-            >
-              {loading ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
         </div>
-      )}
-
-      {/* Subscription Tab */}
-      {activeTab === "subscription" && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Subscription Details
-          </h2>
-          
-          {/* Current Plan */}
-          <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-medium text-gray-900">Current Plan</h3>
-              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                Active
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-indigo-600 mb-2">{subscription.tier === 'PRO' ? 'Pro Plan' : subscription.tier === 'ENTERPRISE' ? 'Enterprise Plan' : 'Free Plan'}</p>
-            <p className="text-gray-800 mb-4">{subscription.tokensAllocated} tokens per month</p>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-800">
-                Renews on {subscription.renewDate}
-              </p>
-              <Button variant="secondary" size="sm">
-                Manage Plan
-              </Button>
-            </div>
-          </div>
-          
-          {/* Available Plans */}
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Available Plans
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {/* Free Plan */}
-            <div className={`border ${subscription.tier === 'FREE' ? 'border-2 border-green-500' : 'border-gray-200'} rounded-lg p-4 ${subscription.tier === 'FREE' ? 'relative' : ''} flex flex-col h-full`}>
-              {subscription.tier === 'FREE' && (
-                <span className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
-                  CURRENT
-                </span>
-              )}
-              <h4 className="text-lg font-medium text-gray-900 mb-2">Free</h4>
-              <p className="text-3xl font-bold text-gray-900 mb-2">$0<span className="text-lg font-normal text-gray-800">/mo</span></p>
-              <ul className="space-y-2 mb-4 flex-grow">
-                <li className="text-sm text-gray-800">✓ 50 tokens per month</li>
-                <li className="text-sm text-gray-800">✓ Basic content formats</li>
-                <li className="text-sm text-gray-800">✓ Standard repurposing</li>
-              </ul>
-              <Button variant="outline" className="w-full mt-auto" disabled={subscription.tier === 'FREE'}>
-                {subscription.tier === 'FREE' ? 'Current Plan' : 'Downgrade'}
+      ) : (
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Sidebar */}
+          <div className="w-full md:w-64 space-y-2">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                {userAvatar ? (
+                  <img 
+                    src={userAvatar} 
+                    alt={userName}
+                    className="w-12 h-12 rounded-full"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold">
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h2 className="font-medium text-gray-900">{userName}</h2>
+                  <p className="text-sm text-gray-500">{userEmail}</p>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md p-2 flex items-center mb-4">
+                <span>Signed in with <span className="font-medium">{userProvider}</span></span>
+              </div>
+              <Button 
+                variant="secondary" 
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center gap-2 text-sm"
+                disabled={signingOut}
+              >
+                {signingOut ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4" />
+                )}
+                <span>Sign Out</span>
               </Button>
             </div>
             
-            {/* Pro Plan */}
-            <div className={`border ${subscription.tier === 'PRO' ? 'border-2 border-indigo-500' : 'border-gray-200'} rounded-lg p-4 relative flex flex-col h-full`}>
-              {subscription.tier === 'PRO' && (
-                <span className="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
-                  CURRENT
-                </span>
-              )}
-              <span className="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
-                POPULAR
-              </span>
-              <h4 className="text-lg font-medium text-gray-900 mb-2">Pro</h4>
-              <p className="text-3xl font-bold text-gray-900 mb-2">$19<span className="text-lg font-normal text-gray-800">/mo</span></p>
-              <ul className="space-y-2 mb-4 flex-grow">
-                <li className="text-sm text-gray-800">✓ 500 tokens per month</li>
-                <li className="text-sm text-gray-800">✓ All content formats</li>
-                <li className="text-sm text-gray-800">✓ Advanced repurposing</li>
-                <li className="text-sm text-gray-800">✓ Priority support</li>
-              </ul>
-              <Button variant={subscription.tier === 'PRO' ? 'outline' : 'primary'} className="w-full mt-auto" disabled={subscription.tier === 'PRO'}>
-                {subscription.tier === 'PRO' ? 'Current Plan' : subscription.tier === 'ENTERPRISE' ? 'Downgrade' : 'Upgrade'}
-              </Button>
-            </div>
-            
-            {/* Enterprise Plan */}
-            <div className={`border ${subscription.tier === 'ENTERPRISE' ? 'border-2 border-purple-500' : 'border-gray-200'} rounded-lg p-4 ${subscription.tier === 'ENTERPRISE' ? 'relative' : ''} flex flex-col h-full`}>
-              {subscription.tier === 'ENTERPRISE' && (
-                <span className="absolute top-0 right-0 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
-                  CURRENT
-                </span>
-              )}
-              <h4 className="text-lg font-medium text-gray-900 mb-2">Enterprise</h4>
-              <p className="text-3xl font-bold text-gray-900 mb-2">$49<span className="text-lg font-normal text-gray-800">/mo</span></p>
-              <ul className="space-y-2 mb-4 flex-grow">
-                <li className="text-sm text-gray-800">✓ 2000 tokens per month</li>
-                <li className="text-sm text-gray-800">✓ All content formats</li>
-                <li className="text-sm text-gray-800">✓ Advanced repurposing</li>
-                <li className="text-sm text-gray-800">✓ Dedicated support</li>
-                <li className="text-sm text-gray-800">✓ API access</li>
-              </ul>
-              <Button variant={subscription.tier === 'ENTERPRISE' ? 'outline' : 'primary'} className="w-full mt-auto" disabled={subscription.tier === 'ENTERPRISE'}>
-                {subscription.tier === 'ENTERPRISE' ? 'Current Plan' : 'Upgrade'}
-              </Button>
-            </div>
+            {/* Settings Menu */}
+            <nav>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center justify-between w-full p-3 rounded-md text-left mb-1 ${
+                    activeTab === tab.id
+                      ? "bg-indigo-50 text-indigo-700 font-medium"
+                      : "hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`${activeTab === tab.id ? "text-indigo-600" : "text-gray-500"}`}>
+                      {tab.icon}
+                    </span>
+                    <span>{tab.label}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                </button>
+              ))}
+            </nav>
           </div>
-          
-          <p className="text-sm text-gray-800">
-            Need more tokens? Contact our <a href="#" className="text-indigo-600 hover:text-indigo-800">sales team</a> for custom pricing options.
-          </p>
-        </div>
-      )}
 
-      {/* Usage Tab */}
-      {activeTab === "usage" && (
-        <div>
-          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Token Usage
-            </h2>
-            <div className="mb-6 text-gray-800">
-              <TokenUsageCard />
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Token History
-            </h2>
-            <div className="text-gray-800">
-              <TokenHistory />
-            </div>
-          </div>
-        </div>
-      )}
+          {/* Main Content */}
+          <div className="flex-1">
+            {/* Account Tab */}
+            {activeTab === "account" && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Account Information</h2>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={userEmail}
+                      disabled
+                      className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Your email is used to log in to your account
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Display Name
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={userName}
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Authentication Provider
+                    </label>
+                    <input
+                      type="text"
+                      value={userProvider.charAt(0).toUpperCase() + userProvider.slice(1)}
+                      disabled
+                      className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                    />
+                  </div>
+                  
+                  <Button variant="primary" className="mt-4">
+                    Update Profile
+                  </Button>
+                </div>
+              </div>
+            )}
 
-      {/* Security Tab */}
-      {activeTab === "security" && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Security Settings
-          </h2>
-          
-          {/* Change Password */}
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Change Password
-            </h3>
-            <p className="text-sm text-gray-800 mb-4">
-              We&apos;ll send you an email with instructions to reset your password.
-            </p>
-            <Button onClick={handlePasswordChange} variant="secondary">
-              Reset Password
-            </Button>
-          </div>
-          
-          {/* Two-Factor Authentication */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-medium text-gray-900">
-                Two-Factor Authentication
-              </h3>
-              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                Disabled
-              </span>
-            </div>
-            <p className="text-sm text-gray-800 mb-4">
-              Add an extra layer of security to your account by requiring a verification code in addition to your password.
-            </p>
-            <Button onClick={handleToggle2FA} variant="outline">
-              Enable 2FA
-            </Button>
+            {/* Token Usage Tab */}
+            {activeTab === "tokens" && (
+              <div>
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">Token Usage History</h2>
+                  
+                  {tokensLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 text-indigo-600 animate-spin" />
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
+                        <div className="flex flex-col md:flex-row justify-between mb-2">
+                          <h3 className="font-medium text-indigo-800">Current Plan Usage</h3>
+                          <div className="text-sm text-indigo-700">
+                            <span className="font-medium">{tokenUsage?.tokensRemaining || 0}</span> of {(tokenUsage?.tokensUsed || 0) + (tokenUsage?.tokensRemaining || 0)} tokens remaining
+                          </div>
+                        </div>
+                        <div className="w-full bg-indigo-200 rounded-full h-2.5">
+                          <div
+                            className="bg-indigo-600 h-2.5 rounded-full"
+                            style={{ width: `${tokenUsage ? (tokenUsage.tokensRemaining / (tokenUsage.tokensUsed + tokenUsage.tokensRemaining)) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {transactionHistory && transactionHistory.length > 0 ? (
+                          <div>
+                            <div className="flex justify-between text-sm font-medium text-gray-500 mb-2">
+                              <span>Operation</span>
+                              <span>Date</span>
+                            </div>
+                            {transactionHistory.map((transaction) => (
+                              <TokenHistoryCard
+                                key={transaction.id}
+                                operation={transaction.transaction_type}
+                                tokensUsed={transaction.tokens_used}
+                                date={new Date(transaction.created_at).toLocaleDateString()}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            No token usage history found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="text-center">
+                  <Link href="/pricing">
+                    <Button variant="primary" className="flex items-center mx-auto">
+                      <span>Upgrade Your Plan</span>
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Subscription Tab */}
+            {activeTab === "subscription" && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Plan</h2>
+                
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-medium text-indigo-800">Current Plan</h3>
+                      <p className="text-sm text-indigo-600">
+                        {tokenUsage?.subscriptionTier === "PRO" 
+                          ? "Pro Plan" 
+                          : tokenUsage?.subscriptionTier === "ENTERPRISE" 
+                            ? "Enterprise Plan" 
+                            : "Free Plan"}
+                      </p>
+                    </div>
+                    <div className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                      {tokenUsage?.subscriptionTier === "PRO" 
+                        ? "500 tokens/month" 
+                        : tokenUsage?.subscriptionTier === "ENTERPRISE" 
+                          ? "2000 tokens/month" 
+                          : "50 tokens/month"}
+                    </div>
+                  </div>
+                </div>
+                
+                <Link href="/pricing">
+                  <Button variant="primary" className="w-full">
+                    View Plans & Upgrade
+                  </Button>
+                </Link>
+                
+                {/* Subscription will be implemented later */}
+                <div className="mt-8 border-t border-gray-200 pt-6">
+                  <h3 className="text-md font-medium text-gray-900 mb-2">Payment History</h3>
+                  <p className="text-sm text-gray-500 italic">
+                    No payment history available
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Notifications Tab */}
+            {activeTab === "notifications" && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Notification Settings</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <h3 className="font-medium text-gray-800">Email Notifications</h3>
+                      <p className="text-sm text-gray-500">
+                        Receive emails about account activity and system updates
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <h3 className="font-medium text-gray-800">Token Usage Alerts</h3>
+                      <p className="text-sm text-gray-500">
+                        Get notified when you&apos;re running low on tokens
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <h3 className="font-medium text-gray-800">Marketing Emails</h3>
+                      <p className="text-sm text-gray-500">
+                        Receive emails about new features, tips, and offers
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                </div>
+                
+                <Button variant="primary" className="mt-6">
+                  Save Preferences
+                </Button>
+              </div>
+            )}
+
+            {/* Security Tab */}
+            {activeTab === "security" && (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h2>
+                
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-medium text-gray-800">Change Password</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Update your password for added security
+                    </p>
+                    
+                    {userProvider !== "email" ? (
+                      <div className="bg-amber-50 border border-amber-100 rounded-md p-3 text-sm text-amber-800">
+                        You are signed in with {userProvider}. Password management is handled by your authentication provider.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Current Password
+                          </label>
+                          <input
+                            type="password"
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            New Password
+                          </label>
+                          <input
+                            type="password"
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm New Password
+                          </label>
+                          <input
+                            type="password"
+                            className="w-full p-2 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                        <Button variant="primary">
+                          Update Password
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="font-medium text-gray-800">Two-Factor Authentication</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Add an extra layer of security to your account
+                    </p>
+                    
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-md p-3 text-sm text-indigo-700 mb-4">
+                      Two-factor authentication is not currently enabled.
+                    </div>
+                    
+                    <Button variant="secondary">
+                      Enable 2FA
+                    </Button>
+                  </div>
+                  
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="font-medium text-red-600">Danger Zone</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Permanently delete your account and all associated data
+                    </p>
+                    
+                    <Button variant="danger" className="text-sm px-3 py-1.5">
+                      Delete Account
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

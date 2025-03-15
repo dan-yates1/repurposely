@@ -12,6 +12,9 @@ import { ContentCard } from "@/components/ui/content-card";
 import { TemplateCard } from "@/components/ui/template-card";
 import { AnalyticsCard } from "@/components/ui/analytics-card";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useTokens } from "@/hooks/useTokens";
+import { AnalyticsMetricCard } from "@/components/ui/analytics-metric-card";
+import { TokenUsageCard } from "@/components/ui/token-usage-card";
 
 // Define types for content history items
 interface ContentHistoryItem {
@@ -31,11 +34,10 @@ interface ContentHistoryItem {
 export default function Dashboard() {
   const router = useRouter();
   usePageTitle("Dashboard");
-  const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>(
-    []
-  );
+  const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const { tokenUsage } = useTokens();
 
   // Define the fetchContentHistory function before useEffect
   const fetchContentHistory = async (userId: string) => {
@@ -96,13 +98,13 @@ export default function Dashboard() {
   const templates = [
     {
       id: "twitter-post",
-      title: "Twitter Post",
-      description: "Create engaging Twitter posts",
+      title: "Twitter Thread",
+      description: "Create engaging Twitter threads",
       icon: <Twitter className="h-5 w-5" />,
     },
     {
       id: "blog-post",
-      title: "Blog Post",
+      title: "Blog Article",
       description: "Create SEO-optimized blog content",
       icon: <BookOpen className="h-5 w-5" />,
     },
@@ -141,6 +143,11 @@ export default function Dashboard() {
             Create New
           </Button>
         </div>
+      </div>
+
+      {/* Token Usage Summary */}
+      <div className="mb-8">
+        <TokenUsageCard />
       </div>
 
       {/* Dashboard Tabs */}
@@ -278,29 +285,33 @@ export default function Dashboard() {
             Content Analytics
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <AnalyticsCard
+            <AnalyticsMetricCard
               title="Content Created"
               value={analyticsData.contentCreated.toString()}
               change="+3"
               isPositive={true}
+              description="Total content pieces created this month"
             />
-            <AnalyticsCard
+            <AnalyticsMetricCard
               title="Total Views"
               value={analyticsData.totalViews.toLocaleString()}
               change="+12%"
               isPositive={true}
+              description="Combined views across all platforms"
             />
-            <AnalyticsCard
+            <AnalyticsMetricCard
               title="Engagements"
               value={analyticsData.totalEngagements.toLocaleString()}
               change="+8%"
               isPositive={true}
+              description="Likes, comments, and shares"
             />
-            <AnalyticsCard
+            <AnalyticsMetricCard
               title="Conversion Rate"
               value={`${analyticsData.conversionRate}%`}
               change="-0.5%"
               isPositive={false}
+              description="Traffic that results in conversions"
             />
           </div>
           <div className="h-60 bg-gray-100 rounded-lg flex items-center justify-center">

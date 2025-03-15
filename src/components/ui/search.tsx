@@ -1,24 +1,59 @@
-import { Search as SearchIcon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Search as SearchIcon, X } from 'lucide-react';
+import { useState, useEffect, ChangeEvent } from 'react';
 
-interface SearchProps {
+export interface SearchProps {
   placeholder?: string;
   onSearch?: (query: string) => void;
   className?: string;
+  value?: string;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
+  onClear?: () => void;
 }
 
-export function Search({ placeholder = "Search content...", onSearch, className = "" }: SearchProps) {
+export function Search({ 
+  placeholder = "Search content...", 
+  onSearch, 
+  className = "",
+  value,
+  onChange,
+  onClear
+}: SearchProps) {
   const [query, setQuery] = useState('');
+  const isControlled = value !== undefined && onChange !== undefined;
 
+  // For uncontrolled component
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      if (onSearch) {
-        onSearch(query);
-      }
-    }, 300);
+    if (!isControlled) {
+      const debounceTimer = setTimeout(() => {
+        if (onSearch) {
+          onSearch(query);
+        }
+      }, 300);
+  
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [query, onSearch, isControlled]);
 
-    return () => clearTimeout(debounceTimer);
-  }, [query, onSearch]);
+  // Handle input change
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (isControlled) {
+      onChange?.(e);
+    } else {
+      setQuery(e.target.value);
+    }
+  };
+
+  // Handle clear action
+  const handleClear = () => {
+    if (isControlled) {
+      onClear?.();
+    } else {
+      setQuery('');
+      onSearch?.('');
+    }
+  };
+
+  const displayValue = isControlled ? value : query;
 
   return (
     <div className={`relative ${className}`}>
@@ -27,11 +62,20 @@ export function Search({ placeholder = "Search content...", onSearch, className 
       </div>
       <input
         type="text"
-        className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 p-2.5"
+        className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-10 p-2.5"
         placeholder={placeholder}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        value={displayValue}
+        onChange={handleChange}
       />
+      {displayValue && (
+        <button 
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+          onClick={handleClear}
+          type="button"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }

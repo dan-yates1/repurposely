@@ -2,68 +2,84 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { HistoryCard } from "@/components/ui/history-card";
-import { AnalyticsMetricCard } from "@/components/ui/analytics-metric-card";
-import { CategoryCard } from "@/components/ui/category-card";
-import {
-  Twitter,
-  BookOpen,
-  FileText,
-  Mail,
-  Edit,
-  TrendingUp,
-} from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
+import { 
+  Calendar, 
+  Filter, 
+  Search as SearchIcon, 
+  ChevronDown,
+  Clock
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContentCard } from "@/components/ui/content-card";
+import { Search } from "@/components/ui/search";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
-// Define types for content history items
 interface ContentHistoryItem {
   id: string;
   user_id: string;
   original_content: string;
   repurposed_content: string;
-  created_at: string;
-  content_type: string;
+  output_format?: string;
+  content_type?: string;
   tone: string;
-  target_audience: string;
   content_length: string;
+  target_audience: string;
+  created_at: string;
   status?: "published" | "draft";
 }
 
 export default function History() {
-  const router = useRouter();
   usePageTitle("Content History");
-  const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>(
-    []
-  );
-  const [activeTab, setActiveTab] = useState("all-history");
-  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchContentHistory(session.user.id);
-      } else {
-        router.push("/auth");
-      }
-    };
-
-    checkUser();
-  }, [router]);
-
+  // Fetch content history
   const fetchContentHistory = async (userId: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("content_history")
         .select("*")
         .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: sortOrder === "asc" });
+
+      // Apply format filter if selected
+      if (selectedFormat) {
+        query = query.eq("output_format", selectedFormat);
+      }
+
+      // Apply timeframe filter if selected
+      if (selectedTimeframe) {
+        const now = new Date();
+        const startDate = new Date();
+        
+        switch (selectedTimeframe) {
+          case "today":
+            startDate.setHours(0, 0, 0, 0);
+            break;
+          case "week":
+            startDate.setDate(now.getDate() - 7);
+            break;
+          case "month":
+            startDate.setMonth(now.getMonth() - 1);
+            break;
+          case "year":
+            startDate.setFullYear(now.getFullYear() - 1);
+            break;
+        }
+        
+        query = query.gte("created_at", startDate.toISOString());
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         throw error;
@@ -80,307 +96,193 @@ export default function History() {
     }
   };
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-  };
-
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
-  };
-
-  const handleCardClick = (id: string) => {
-    router.push(`/content/${id}`);
-  };
-
-  const deleteContent = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("content_history")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        throw error;
+  useEffect(() => {
+    const getUserData = async () => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          await fetchContentHistory(userData.user.id);
+        }
+      } catch (error) {
+        console.error("Error getting user data:", error);
       }
+    };
 
-      // Remove the deleted item from the state
-      setContentHistory((prev) => prev.filter((item) => item.id !== id));
-      toast.success("Content deleted successfully");
-    } catch (error) {
-      console.error("Error deleting content:", error);
-      toast.error("Failed to delete content");
-    }
-  };
+    getUserData();
+  }, [selectedFormat, selectedTimeframe, sortOrder]);
 
-  const getContentTypeIcon = (contentType: string) => {
-    switch (contentType) {
-      case "Blog Post":
-        return <BookOpen className="text-blue-500" />;
-      case "Social Media":
-        return <Twitter className="text-indigo-500" />;
-      case "Email":
-        return <Mail className="text-purple-500" />;
-      default:
-        return <FileText className="text-green-500" />;
-    }
-  };
-
-  const handleCopyContent = (content: string) => {
-    navigator.clipboard.writeText(content);
-    toast.success("Content copied to clipboard");
-  };
-
-  const handleDeleteContent = (id: string) => {
-    deleteContent(id);
-  };
-
-  // Filter content history based on active tab and search query
-  const filteredHistory = contentHistory.filter((item) => {
-    // Tab filtering
-    if (activeTab === "blog-posts" && item.content_type !== "Blog Post") {
-      return false;
-    }
-    if (activeTab === "social-posts" && !item.content_type.includes("Social Media")) {
-      return false;
-    }
-    if (activeTab === "emails" && !item.content_type.includes("Email")) {
-      return false;
-    }
-
-    // Search filtering
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        item.original_content.toLowerCase().includes(query) ||
-        item.repurposed_content.toLowerCase().includes(query) ||
-        item.content_type.toLowerCase().includes(query) ||
-        item.tone.toLowerCase().includes(query) ||
-        item.target_audience.toLowerCase().includes(query)
-      );
-    }
-
-    return true;
+  // Filter content by search query
+  const filteredContent = contentHistory.filter((item) => {
+    return (
+      item.original_content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.repurposed_content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.output_format && item.output_format.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
   });
 
-  // Calculate metrics
-  const metrics = {
-    totalContent: contentHistory.length,
-    blogPosts: contentHistory.filter((item) => item.content_type === "Blog Post").length,
-    socialPosts: contentHistory.filter((item) => item.content_type.includes("Social Media")).length,
-    emails: contentHistory.filter((item) => item.content_type.includes("Email")).length,
-    thisMonth: contentHistory.filter((item) => {
-      const itemDate = new Date(item.created_at);
-      const now = new Date();
-      return (
-        itemDate.getMonth() === now.getMonth() &&
-        itemDate.getFullYear() === now.getFullYear()
-      );
-    }).length,
-  };
+  // Output format options
+  const formatOptions = [
+    { id: null, label: "All Formats" },
+    { id: "twitter", label: "Twitter Thread" },
+    { id: "linkedin", label: "LinkedIn Post" },
+    { id: "blog", label: "Blog Article" },
+    { id: "instagram", label: "Instagram Caption" },
+    { id: "facebook", label: "Facebook Post" },
+    { id: "youtube", label: "YouTube Description" },
+  ];
 
-  // Get content category distribution
-  const categoryDistribution = [
-    { name: "Blog Posts", count: metrics.blogPosts, icon: <BookOpen className="text-blue-500" /> },
-    { name: "Social Media", count: metrics.socialPosts, icon: <Twitter className="text-indigo-500" /> },
-    { name: "Emails", count: metrics.emails, icon: <Mail className="text-purple-500" /> },
-    { 
-      name: "Other", 
-      count: metrics.totalContent - metrics.blogPosts - metrics.socialPosts - metrics.emails,
-      icon: <FileText className="text-green-500" />
-    },
+  // Timeframe options
+  const timeframeOptions = [
+    { id: null, label: "All Time" },
+    { id: "today", label: "Today" },
+    { id: "week", label: "Last 7 Days" },
+    { id: "month", label: "Last 30 Days" },
+    { id: "year", label: "Last Year" },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
-      
-      {/* Header Section */}
-      <div className="mb-8">
+
+      {/* Header */}
+      <div className="flex items-center mb-6">
+        <Link
+          href="/dashboard"
+          className="text-gray-500 text-sm hover:text-gray-700"
+        >
+          Dashboard
+        </Link>
+        <span className="mx-2 text-gray-400">/</span>
+        <span className="text-gray-700 text-sm font-medium">Content History</span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Content History</h1>
-        <p className="text-gray-500">View and manage all your generated content</p>
+        <Button 
+          onClick={() => router.push("/create")} 
+          variant="primary"
+          className="w-full sm:w-auto"
+        >
+          Create New Content
+        </Button>
       </div>
 
-      {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <AnalyticsMetricCard
-          title="Total Content"
-          value={metrics.totalContent.toString()}
-          icon={<FileText className="text-blue-500" />}
-        />
-        <AnalyticsMetricCard
-          title="Blog Posts"
-          value={metrics.blogPosts.toString()}
-          icon={<BookOpen className="text-indigo-500" />}
-        />
-        <AnalyticsMetricCard
-          title="Social Media Posts"
-          value={metrics.socialPosts.toString()}
-          icon={<Twitter className="text-purple-500" />}
-        />
-        <AnalyticsMetricCard
-          title="Created This Month"
-          value={metrics.thisMonth.toString()}
-          icon={<TrendingUp className="text-green-500" />}
-        />
-      </div>
-
-      {/* Search and Tabs */}
-      <div className="bg-white shadow-sm rounded-lg mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 p-4">
-          <div className="mb-4 md:mb-0">
-            <div className="flex space-x-4">
-              <button
-                className={`px-3 py-2 text-sm font-medium rounded-md ${
-                  activeTab === "all-history"
-                    ? "bg-indigo-100 text-indigo-700"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => handleTabChange("all-history")}
-              >
-                All History
-              </button>
-              <button
-                className={`px-3 py-2 text-sm font-medium rounded-md ${
-                  activeTab === "blog-posts"
-                    ? "bg-indigo-100 text-indigo-700"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => handleTabChange("blog-posts")}
-              >
-                Blog Posts
-              </button>
-              <button
-                className={`px-3 py-2 text-sm font-medium rounded-md ${
-                  activeTab === "social-posts"
-                    ? "bg-indigo-100 text-indigo-700"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => handleTabChange("social-posts")}
-              >
-                Social Posts
-              </button>
-              <button
-                className={`px-3 py-2 text-sm font-medium rounded-md ${
-                  activeTab === "emails"
-                    ? "bg-indigo-100 text-indigo-700"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => handleTabChange("emails")}
-              >
-                Emails
-              </button>
-            </div>
-          </div>
-          <div className="relative w-full md:w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg
-                className="h-4 w-4 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Search content..."
+      {/* Filters */}
+      <div className="mb-8 bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <Search 
               value={searchQuery}
-              onChange={handleSearch}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search content..." 
+              onClear={() => setSearchQuery("")}
             />
           </div>
-        </div>
-
-        {/* Content Listing */}
-        <div className="p-4">
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="border border-gray-200 rounded-lg p-4 animate-pulse"
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* Format Filter Dropdown */}
+            <div className="relative">
+              <div className="flex items-center bg-white border border-gray-200 rounded-md p-2 min-w-[160px]">
+                <Filter className="h-4 w-4 text-gray-500 mr-2" />
+                <select 
+                  className="text-sm text-gray-700 bg-transparent outline-none appearance-none w-full pr-8 cursor-pointer"
+                  value={selectedFormat || ""}
+                  onChange={(e) => setSelectedFormat(e.target.value || null)}
                 >
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded w-full mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-full"></div>
-                </div>
-              ))}
+                  {formatOptions.map(format => (
+                    <option 
+                      key={`format-${format.id || 'all'}`} 
+                      value={format.id || ""}
+                    >
+                      {format.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="h-4 w-4 text-gray-500 absolute right-2 pointer-events-none" />
+              </div>
             </div>
-          ) : filteredHistory.length > 0 ? (
-            <div className="space-y-4">
-              {filteredHistory.map((item) => (
-                <HistoryCard
-                  key={item.id}
-                  title={
-                    item.original_content.length > 50
-                      ? item.original_content.substring(0, 50) + "..."
-                      : item.original_content
-                  }
-                  description={
-                    item.repurposed_content.length > 100
-                      ? item.repurposed_content.substring(0, 100) + "..."
-                      : item.repurposed_content
-                  }
-                  date={new Date(item.created_at).toLocaleDateString()}
-                  status={item.status || "draft"}
-                  icon={getContentTypeIcon(item.content_type)}
-                  onCopy={() => handleCopyContent(item.repurposed_content)}
-                  onEdit={() => handleCardClick(item.id)}
-                  onDelete={() => handleDeleteContent(item.id)}
-                />
-              ))}
+            
+            {/* Timeframe Filter Dropdown */}
+            <div className="relative">
+              <div className="flex items-center bg-white border border-gray-200 rounded-md p-2 min-w-[160px]">
+                <Calendar className="h-4 w-4 text-gray-500 mr-2" />
+                <select 
+                  className="text-sm text-gray-700 bg-transparent outline-none appearance-none w-full pr-8 cursor-pointer"
+                  value={selectedTimeframe || ""}
+                  onChange={(e) => setSelectedTimeframe(e.target.value || null)}
+                >
+                  {timeframeOptions.map(timeframe => (
+                    <option 
+                      key={`timeframe-${timeframe.id || 'all'}`} 
+                      value={timeframe.id || ""}
+                    >
+                      {timeframe.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="h-4 w-4 text-gray-500 absolute right-2 pointer-events-none" />
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <FileText className="mx-auto h-12 w-12 text-gray-300" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No content found
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {searchQuery
-                  ? "Try adjusting your search or filters."
-                  : "Get started by creating a new piece of content."}
-              </p>
-              {!searchQuery && (
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    onClick={() => router.push("/create")}
-                  >
-                    <Edit className="-ml-1 mr-2 h-4 w-4" />
-                    Create New Content
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+            
+            {/* Sort Order Toggle */}
+            <Button 
+              variant="secondary" 
+              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+              className="flex items-center gap-2"
+            >
+              <Clock className="h-4 w-4" />
+              <span>{sortOrder === "desc" ? "Newest First" : "Oldest First"}</span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Content Categories Section - Only show if there's content */}
-      {contentHistory.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Content Categories
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categoryDistribution.map((category) => (
-              <CategoryCard
-                key={category.name}
-                name={category.name}
-                count={category.count}
-                icon={category.icon}
-              />
-            ))}
-          </div>
+      {/* Content History */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array(6).fill(0).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-pulse"
+            >
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-4/6 mb-4"></div>
+              <div className="flex justify-between items-center">
+                <div className="h-8 bg-gray-200 rounded w-16"></div>
+                <div className="h-3 bg-gray-200 rounded w-12"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredContent.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredContent.map((item) => (
+            <ContentCard
+              key={item.id}
+              id={item.id}
+              title={item.original_content.slice(0, 40) + "..."}
+              description={item.repurposed_content.slice(0, 100) + "..."}
+              date={new Date(item.created_at).toLocaleDateString()}
+              type={item.output_format || "Text"}
+              status={item.status || "draft"}
+              onClick={() => router.push(`/content/${item.id}`)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white p-10 rounded-lg border border-gray-200 text-center">
+          <SearchIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No content found</h3>
+          <p className="text-gray-500 mb-6">
+            {searchQuery || selectedFormat || selectedTimeframe
+              ? "Try adjusting your filters to find your content."
+              : "You haven't created any content yet."}
+          </p>
+          <Button onClick={() => router.push("/create")} variant="primary">
+            Create Your First Content
+          </Button>
         </div>
       )}
     </div>

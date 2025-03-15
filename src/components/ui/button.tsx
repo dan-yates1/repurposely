@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 interface ButtonProps {
   children: ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;
@@ -23,6 +23,7 @@ export function Button({
     primary: 'bg-indigo-600 text-white hover:bg-indigo-700',
     secondary: 'bg-white border border-gray-200 text-gray-800 hover:bg-gray-50',
     outline: 'bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50',
+    danger: 'bg-red-600 text-white hover:bg-red-700',
   };
   
   const sizeStyles = {
