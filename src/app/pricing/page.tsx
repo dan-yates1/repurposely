@@ -460,7 +460,7 @@ export default function Pricing() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-600 mb-2">
+                <h4 className="font-semibold text-gray-800 mb-2">
                   Social Media Manager
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
@@ -474,7 +474,7 @@ export default function Pricing() {
               </div>
 
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-600 mb-2">
+                <h4 className="font-semibold text-gray-800 mb-2">
                   Content Creator
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
@@ -488,7 +488,7 @@ export default function Pricing() {
               </div>
 
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-600 mb-2">
+                <h4 className="font-semibold text-gray-800 mb-2">
                   Marketing Agency
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
