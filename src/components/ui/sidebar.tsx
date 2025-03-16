@@ -22,11 +22,8 @@ export function Sidebar() {
   const { 
     tokenUsage, 
     loading: tokensLoading, 
-    error: tokensError, 
-    initializeTokens,
-    fetchTokenUsage
+    error: tokensError 
   } = useTokens();
-  const [userId, setUserId] = useState<string | null>(null);
 
   const isActive = (path: string) => {
     return pathname === path ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-100';
@@ -38,7 +35,6 @@ export function Sidebar() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
         const email = data.user.email;
-        setUserId(data.user.id);
         
         if (email) {
           setUserName(email.split('@')[0]);
@@ -138,22 +134,6 @@ export function Sidebar() {
     }
   };
 
-  // Function to manually initialize tokens using the hook's initializeTokens
-  const handleInitializeTokens = async () => {
-    if (!userId) {
-      toast.error('You must be logged in to initialize tokens');
-      return;
-    }
-
-    try {
-      await initializeTokens();
-      await fetchTokenUsage();
-      toast.success('Tokens initialized successfully!');
-    } catch (error) {
-      toast.error(`Failed to initialize tokens: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
   return (
     <>
       {/* Mobile sidebar toggle button - visible only on mobile */}
@@ -226,18 +206,6 @@ export function Sidebar() {
                 )}
               </span>
             </Link>
-          )}
-
-          {/* Token initialization button - only shown when needed */}
-          {!tokenUsage && !tokensLoading && !tokensError && !isCollapsed && (
-            <div className="mt-2">
-              <button
-                onClick={handleInitializeTokens}
-                className="w-full py-2 px-3 text-sm bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
-              >
-                Initialize Tokens
-              </button>
-            </div>
           )}
         </div>
 

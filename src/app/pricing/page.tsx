@@ -1,17 +1,87 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/ui/logo";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { Footer } from "@/components/ui/footer";
+import { CheckoutButton } from "@/components/ui/checkout-button";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter, useSearchParams } from "next/navigation";
+import toast from "react-hot-toast";
+import { Navbar } from "@/components/ui/navbar";
 
-export default function Pricing() {
+// Create a client component that uses useSearchParams
+function PricingContent() {
   // Client-side code only
   const [mounted, setMounted] = useState(false);
+  const [processingResume, setProcessingResume] = useState(false);
+  const supabase = createClientComponentClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Check authentication status
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      
+      // Check for resume_checkout parameter and resume checkout if needed
+      const resumeCheckout = searchParams.get('resume_checkout');
+      const checkoutCancelled = searchParams.get('checkout') === 'cancelled';
+      
+      if (checkoutCancelled) {
+        toast.error("Checkout was cancelled. You can try again when you're ready.");
+      }
+      
+      // Only proceed if user is authenticated and we have a resume parameter
+      if (resumeCheckout === 'true' && data.session && !processingResume) {
+        setProcessingResume(true);
+        
+        try {
+          // Get the stored checkout intent from localStorage
+          const storedIntent = localStorage.getItem('checkout_intent');
+          if (storedIntent) {
+            const { priceId, planName } = JSON.parse(storedIntent);
+            console.log('Resuming checkout with:', { priceId, planName });
+            
+            // Clear stored intent
+            localStorage.removeItem('checkout_intent');
+            
+            // Create checkout session
+            const response = await fetch("/api/stripe/create-checkout", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                priceId,
+                planName,
+              }),
+            });
+            
+            const responseData = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(responseData.error || "Failed to create checkout session");
+            }
+            
+            // Redirect to Stripe Checkout
+            window.location.href = responseData.checkoutUrl;
+          } else {
+            console.log('No checkout intent found in localStorage');
+          }
+        } catch (error) {
+          console.error('Error resuming checkout:', error);
+          toast.error("Failed to resume checkout. Please try again.");
+        } finally {
+          setProcessingResume(false);
+        }
+      }
+    };
+    
+    checkAuth();
+  }, [supabase.auth, searchParams, router, processingResume]);
 
   // Only render animations if client-side
   if (!mounted) {
@@ -27,33 +97,7 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-indigo-50">
       {/* Navigation */}
-      <nav className="bg-white py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <Logo />
-            <div className="flex space-x-6 items-center">
-              <Link href="/auth">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Get Pro
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Header */}
       <section className="py-16 text-center">
@@ -161,31 +205,31 @@ export default function Pricing() {
                 </ul>
                 <Link href="/auth">
                   <Button
-                    variant="secondary"
-                    className="w-full py-3 rounded-xl"
+                    variant="outline"
+                    className="w-full py-3 text-center border-indigo-600 text-indigo-600 rounded-xl hover:bg-indigo-50"
                   >
-                    Get Started
+                    Get Started for Free
                   </Button>
                 </Link>
               </div>
             </div>
 
             {/* Pro Plan */}
-            <div className="bg-gradient-to-br from-white to-indigo-50 rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl relative scale-105 border-2 border-indigo-400">
-              <div className="p-8 pt-10 bg-white">
-                <h3 className="text-xl font-bold text-indigo-700 mb-4 flex items-center">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl relative">
+              <div className="absolute top-0 right-0 bg-indigo-600 text-white py-1 px-4 rounded-bl-lg font-medium">
+                Most Popular
+              </div>
+              <div className="p-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">
                   Pro
-                  <span className="ml-2 text-xs bg-indigo-100 text-indigo-800 py-1 px-2 rounded-full">Recommended</span>
                 </h3>
                 <div className="flex items-baseline mb-2">
-                  <span className="text-5xl font-bold text-indigo-600">
-                    $29
-                  </span>
+                  <span className="text-5xl font-bold text-indigo-600">$19</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
-
+                
                 <p className="text-gray-600 mb-8">
-                  For content creators and small teams who need more capacity.
+                  For professionals who need more tokens and capabilities.
                 </p>
                 <ul className="space-y-4 mb-8">
                   <li className="flex items-center">
@@ -267,11 +311,14 @@ export default function Pricing() {
                     <span className="text-gray-700">Priority support</span>
                   </li>
                 </ul>
-                <Link href="/auth">
-                  <Button variant="primary" className="w-full py-3 rounded-xl">
-                    Upgrade to Pro
-                  </Button>
-                </Link>
+                
+                <CheckoutButton
+                  priceId="price_pro" // Replace with your actual Stripe Price ID
+                  planName="PRO"
+                  className="w-full py-3 text-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"
+                >
+                  Upgrade to Pro
+                </CheckoutButton>
               </div>
             </div>
 
@@ -282,14 +329,12 @@ export default function Pricing() {
                   Enterprise
                 </h3>
                 <div className="flex items-baseline mb-2">
-                  <span className="text-5xl font-bold text-indigo-600">
-                    $99
-                  </span>
+                  <span className="text-5xl font-bold text-indigo-600">$49</span>
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 
                 <p className="text-gray-600 mb-8">
-                  For agencies and large teams with high-volume needs.
+                  For high-volume users and businesses.
                 </p>
                 <ul className="space-y-4 mb-8">
                   <li className="flex items-center">
@@ -373,14 +418,14 @@ export default function Pricing() {
                     </span>
                   </li>
                 </ul>
-                <Link href="/auth">
-                  <Button
-                    variant="secondary"
-                    className="w-full py-3 rounded-xl"
-                  >
-                    Contact Sales
-                  </Button>
-                </Link>
+                
+                <CheckoutButton
+                  priceId="price_enterprise" // Replace with your actual Stripe Price ID
+                  planName="ENTERPRISE"
+                  className="w-full py-3 text-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"
+                >
+                  Choose Enterprise
+                </CheckoutButton>
               </div>
             </div>
           </div>
@@ -593,6 +638,18 @@ export default function Pricing() {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <Footer />
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function Pricing() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading pricing...</div>}>
+      <PricingContent />
+    </Suspense>
   );
 }

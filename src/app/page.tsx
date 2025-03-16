@@ -1,10 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/ui/logo";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Footer } from "@/components/ui/footer";
+import { Navbar } from "@/components/ui/navbar";
 
 export default function Home() {
   // Client-side code only
@@ -70,33 +71,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="bg-white py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <Logo />
-            <div className="flex space-x-6 items-center">
-              <Link href="/auth">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Get Pro
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section */}
       <header className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-indigo-600 to-indigo-800 py-24">
@@ -461,6 +436,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

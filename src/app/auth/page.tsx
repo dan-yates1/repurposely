@@ -1,25 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/logo';
 
-export default function AuthPage() {
+// Component that uses useSearchParams
+function AuthContent() {
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
+  const searchParams = useSearchParams();
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Capture checkout parameters if they exist
+  const checkoutPrice = searchParams.get('checkout_price');
+  const checkoutPlan = searchParams.get('checkout_plan');
 
   useEffect(() => {
-    setIsClient(true);
-
     // Check if user is already logged in
     const checkUser = async () => {
-      setIsLoading(true);
       try {
         const { data, error } = await supabase.auth.getSession();
         
@@ -32,30 +33,63 @@ export default function AuthPage() {
         console.log('Auth page session check:', !!data.session);
         
         if (data.session) {
-          console.log('User already logged in, redirecting to dashboard');
-          router.push('/dashboard');
+          console.log('User already logged in');
+          
+          // If checkout parameters exist, immediately redirect to handle checkout
+          if (checkoutPrice && checkoutPlan) {
+            console.log('Redirecting to initiate checkout with plan:', checkoutPlan);
+            router.push(`/api/stripe/direct-checkout?priceId=${checkoutPrice}&planName=${checkoutPlan}`);
+          } else {
+            // No checkout intent, go to dashboard
+            router.push('/dashboard');
+          }
         }
       } catch (err) {
-        console.error('Unexpected error during session check:', err);
+        console.error('Error in auth page:', err);
         setAuthError('An unexpected error occurred');
-      } finally {
-        setIsLoading(false);
       }
     };
 
     checkUser();
+    
+    // Store checkout intent if parameters exist
+    if (checkoutPrice && checkoutPlan) {
+      try {
+        localStorage.setItem('checkout_intent', JSON.stringify({
+          priceId: checkoutPrice,
+          planName: checkoutPlan
+        }));
+        console.log('Stored checkout intent for:', checkoutPlan);
+      } catch (err) {
+        console.error('Failed to store checkout intent:', err);
+      }
+    }
+  }, [router, checkoutPrice, checkoutPlan]);
 
-    // Set up auth state listener
+  // Handle auth state change
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, !!session);
-        
-        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
-          console.log('User signed in, redirecting to dashboard');
-          // Add a small delay to ensure the session is properly set
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 1500);
+        if (event === 'SIGNED_IN' && session) {
+          console.log('User signed in, redirecting');
+          
+          // Check if we have a stored checkout intent
+          try {
+            const storedIntent = localStorage.getItem('checkout_intent');
+            if (storedIntent) {
+              const { priceId, planName } = JSON.parse(storedIntent);
+              console.log('Found stored checkout intent for:', planName);
+              
+              // Redirect to handle checkout
+              router.push(`/api/stripe/direct-checkout?priceId=${priceId}&planName=${planName}`);
+              return;
+            }
+          } catch (err) {
+            console.error('Error processing stored checkout intent:', err);
+          }
+          
+          // No checkout intent, go to dashboard
+          router.push('/dashboard');
         }
       }
     );
@@ -64,8 +98,6 @@ export default function AuthPage() {
       subscription.unsubscribe();
     };
   }, [router]);
-
-  if (!isClient) return null;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-50 via-white to-purple-50 relative overflow-hidden">
@@ -83,59 +115,18 @@ export default function AuthPage() {
         </div>
 
         {authError && (
-          <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-100 animate-fadeIn flex justify-between items-center">
-            <span>{authError}</span>
-            <button 
-              className="ml-2 text-sm text-red-500 hover:text-red-700 transition-colors"
-              onClick={() => setAuthError(null)}
-            >
-              Dismiss
-            </button>
+          <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+            {authError}
           </div>
         )}
-
-        {isLoading ? (
-          <div className="flex justify-center p-8 animate-pulse">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-100 border-t-indigo-600"></div>
-          </div>
-        ) : (
-          <div className="mt-8 animate-fadeIn" style={{ animationDelay: "0.3s" }}>
-            <Auth
-              supabaseClient={supabase}
-              appearance={{
-                theme: ThemeSupa,
-                variables: {
-                  default: {
-                    colors: {
-                      brand: '#4f46e5',
-                      brandAccent: '#4338ca',
-                      brandButtonText: 'white',
-                    },
-                    borderWidths: {
-                      buttonBorderWidth: '1px',
-                      inputBorderWidth: '1px',
-                    },
-                    radii: {
-                      borderRadiusButton: '0.5rem',
-                      buttonBorderRadius: '0.5rem',
-                      inputBorderRadius: '0.5rem',
-                    },
-                  },
-                },
-                className: {
-                  button: 'rounded-lg hover:shadow-md transition-all duration-200',
-                  input: 'rounded-lg border-gray-200',
-                  label: 'text-gray-600',
-                },
-              }}
-              providers={['google']}
-              redirectTo={`${window.location.origin}/auth`}
-              theme="light"
-              onlyThirdPartyProviders={false}
-              view="sign_in"
-            />
-          </div>
-        )}
+        
+        <Auth
+          supabaseClient={supabase}
+          appearance={{ theme: ThemeSupa }}
+          theme="light"
+          providers={[]}
+          redirectTo={`${window.location.origin}/auth/callback`}
+        />
 
         <div className="mt-6 text-center animate-fadeIn" style={{ animationDelay: "0.4s" }}>
           <Link href="/" className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors font-medium flex items-center justify-center">
@@ -147,5 +138,14 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Loading authentication...</div>}>
+      <AuthContent />
+    </Suspense>
   );
 }

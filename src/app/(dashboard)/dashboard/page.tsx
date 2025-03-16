@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import toast, { Toaster } from "react-hot-toast";
-import { Twitter, BookOpen, Mail, Video } from "lucide-react";
+import { Twitter, BookOpen, Mail, Video, Sparkles, CreditCard } from "lucide-react";
 import { Search } from "@/components/ui/search";
 import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
@@ -14,6 +14,8 @@ import { AnalyticsCard } from "@/components/ui/analytics-card";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { AnalyticsMetricCard } from "@/components/ui/analytics-metric-card";
 import { TokenUsageCard } from "@/components/ui/token-usage-card";
+import { UpgradeButton } from "@/components/ui/upgrade-button";
+import { STRIPE_PRICE_IDS } from "@/lib/stripe";
 
 // Define types for content history items
 interface ContentHistoryItem {
@@ -36,6 +38,7 @@ export default function Dashboard() {
   const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [isFreeTier, setIsFreeTier] = useState(true);
 
   // Define the fetchContentHistory function before useEffect
   const fetchContentHistory = async (userId: string) => {
@@ -75,6 +78,50 @@ export default function Dashboard() {
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
           await fetchContentHistory(userData.user.id);
+          
+          // Fetch subscription data
+          const { data: subData, error: subError } = await supabase
+            .from("user_subscriptions")
+            .select("subscription_tier, is_active")
+            .eq("user_id", userData.user.id)
+            .single();
+            
+          if (subError) {
+            console.error("Error fetching subscription:", subError);
+          }
+          
+          if (subData) {
+            // Log subscription data for debugging
+            console.log("Dashboard - User subscription data:", subData);
+            
+            // Check if user has an active paid plan
+            const tier = (subData.subscription_tier || '').toUpperCase();
+            const isActive = subData.is_active !== false; // Default to true if undefined
+            
+            const isPaidTier = tier === 'PRO' || tier === 'ENTERPRISE';
+            const showUpgrade = !(isPaidTier && isActive);
+            
+            console.log(`Dashboard - User has ${tier} plan, active: ${isActive}, showing upgrade section: ${showUpgrade}`);
+            setIsFreeTier(showUpgrade);
+            
+            // Force a refresh of the token usage data to ensure it's up to date
+            try {
+              const { data: tokenData } = await supabase
+                .from("token_usage")
+                .select("tokens_used, tokens_remaining")
+                .eq("user_id", userData.user.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .single();
+                
+              console.log("Dashboard - Token usage data:", tokenData);
+            } catch (tokenError) {
+              console.error("Error fetching token usage:", tokenError);
+            }
+          } else {
+            console.log("Dashboard - No subscription data found, assuming free tier");
+            setIsFreeTier(true);
+          }
         }
       } catch (error) {
         console.error("Error getting user data:", error);
@@ -148,6 +195,62 @@ export default function Dashboard() {
         <TokenUsageCard />
       </div>
 
+      {/* Upgrade Section - only show for free tier users */}
+      {isFreeTier ? (
+        <div className="mb-8 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 rounded-xl p-6 border border-indigo-100 shadow-sm">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+              <h2 className="text-xl font-bold text-indigo-800 flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-indigo-500" />
+                Upgrade to Pro
+              </h2>
+              <p className="text-gray-700 mt-2 max-w-xl">
+                Get 500 tokens/month and unlock advanced features like image generation and video processing. 
+                No more interruptions in your content creation workflow.
+              </p>
+              <ul className="mt-3 space-y-1">
+                <li className="flex items-center text-gray-700">
+                  <CreditCard className="h-4 w-4 mr-2 text-green-500" />
+                  <span>One-click checkout directly from your dashboard</span>
+                </li>
+                <li className="flex items-center text-gray-700">
+                  <CreditCard className="h-4 w-4 mr-2 text-green-500" />
+                  <span>10x more tokens than the free plan</span>
+                </li>
+              </ul>
+            </div>
+            <div className="flex flex-col md:flex-row gap-4">
+              <UpgradeButton
+                priceId={STRIPE_PRICE_IDS.PRO}
+                planName="pro"
+                variant="primary"
+                size="lg"
+              >
+                Upgrade to Pro
+              </UpgradeButton>
+              <UpgradeButton
+                priceId={STRIPE_PRICE_IDS.ENTERPRISE}
+                planName="enterprise"
+                variant="outline"
+                size="lg"
+              >
+                Enterprise Plan
+              </UpgradeButton>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-8 bg-gradient-to-r from-green-50 via-teal-50 to-green-50 rounded-xl p-6 border border-green-100 shadow-sm">
+          <div className="flex items-center">
+            <Sparkles className="h-5 w-5 mr-2 text-green-500" />
+            <h2 className="text-xl font-bold text-green-800">Pro Subscription Active</h2>
+          </div>
+          <p className="text-gray-700 mt-2">
+            You&apos;re enjoying all the benefits of our Pro plan with 500 tokens per month.
+          </p>
+        </div>
+      )}
+
       {/* Dashboard Tabs */}
       <div className="mb-8">
         <Tabs
@@ -199,8 +302,8 @@ export default function Dashboard() {
               ))
             ) : (
               <div className="col-span-3 py-10 text-center">
-                <p className="text-gray-500 mb-4">
-                  You haven&apos;t created any content yet.
+                <p className="text-sm text-gray-500 mt-2">
+                  You haven&apos;t created any content yet. Click the button above to get started.
                 </p>
                 <Button
                   onClick={() => router.push("/create")}

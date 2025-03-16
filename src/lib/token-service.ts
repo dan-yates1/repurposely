@@ -77,8 +77,8 @@ export class TokenService {
       resetDate.setDate(1);
       resetDate.setHours(0, 0, 0, 0);
       
-      // Use the API endpoint instead of direct Supabase call
-      const response = await fetch('/api/token-debug', {
+      // Use the dedicated init-tokens API endpoint instead of debug endpoint
+      const response = await fetch('/api/init-tokens', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +88,7 @@ export class TokenService {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Token API error:', errorData);
+        console.error('Token initialization error:', errorData);
         throw new Error(`Failed to initialize tokens via API: ${response.status} ${response.statusText}`);
       }
       

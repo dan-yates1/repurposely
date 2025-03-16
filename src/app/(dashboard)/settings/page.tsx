@@ -15,7 +15,8 @@ import {
   ChevronRight,
   LogOut,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -25,7 +26,13 @@ import { TokenHistoryCard } from "@/components/ui/token-history";
 export default function Settings() {
   usePageTitle("Account Settings");
   const router = useRouter();
-  const { tokenUsage, transactionHistory, loading: tokensLoading } = useTokens();
+  const { 
+    tokenUsage, 
+    transactionHistory, 
+    loading: tokensLoading, 
+    subscriptionData, 
+    setSubscriptionData 
+  } = useTokens();
   const [user, setUser] = useState<{
     id?: string;
     email?: string;
@@ -35,6 +42,11 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("account");
   const [signingOut, setSigningOut] = useState(false);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
+  const [subscriptionCancelled, setSubscriptionCancelled] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState("FREE");
   
   // Fetch user data
   useEffect(() => {
@@ -43,6 +55,20 @@ export default function Settings() {
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
           setUser(userData.user);
+          
+          // Check if subscription is already set to cancel
+          const { data: subscriptionData } = await supabase
+            .from("user_subscriptions")
+            .select("cancel_at_period_end, subscription_end_date")
+            .eq("user_id", userData.user.id)
+            .single();
+            
+          if (subscriptionData) {
+            setSubscriptionCancelled(subscriptionData.cancel_at_period_end || false);
+            if (subscriptionData.subscription_end_date) {
+              setSubscriptionEndDate(subscriptionData.subscription_end_date);
+            }
+          }
         } else {
           // Redirect to login if not authenticated
           router.push("/auth");
@@ -69,6 +95,90 @@ export default function Settings() {
       setSigningOut(false);
     }
   };
+  
+  // Handle subscription cancellation
+  const handleCancelSubscription = async () => {
+    try {
+      setCancelingSubscription(true);
+      
+      // Get the current auth session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        console.error("Authentication error:", sessionError);
+        toast.error("Authentication failed. Please try logging in again.");
+        router.push("/auth");
+        return;
+      }
+      
+      // Get a fresh access token to ensure it's not expired
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError || !refreshData.session) {
+        console.error("Session refresh error:", refreshError);
+        toast.error("Your session has expired. Please log in again.");
+        router.push("/auth");
+        return;
+      }
+      
+      // Use the fresh token
+      const token = refreshData.session.access_token;
+      
+      console.log("Sending cancellation request with auth token");
+      
+      const response = await fetch("/api/stripe/cancel-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success("Your subscription will be canceled at the end of the billing period");
+        setSubscriptionCancelled(true);
+        setSubscriptionEndDate(result.cancelDate);
+        setShowCancelConfirm(false);
+        
+        // Update local subscription data to reflect cancellation
+        setSubscriptionData(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            is_active: false,
+            subscription_end_date: result.cancelDate
+          };
+        });
+        
+        // Force refresh the UI
+        setTimeout(() => {
+          router.refresh();
+        }, 500);
+      } else {
+        console.error("Cancel subscription response:", response.status, result);
+        throw new Error(result.error || "Failed to cancel subscription");
+      }
+    } catch (error) {
+      console.error("Error canceling subscription:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to cancel subscription");
+    } finally {
+      setCancelingSubscription(false);
+    }
+  };
+
+  // Display current subscription status
+  useEffect(() => {
+    if (subscriptionData) {
+      // If we have subscription data, use it to set the component state
+      setSubscriptionTier(subscriptionData.subscription_tier || "FREE");
+      setSubscriptionCancelled(!subscriptionData.is_active);
+      if (subscriptionData.subscription_end_date) {
+        setSubscriptionEndDate(subscriptionData.subscription_end_date);
+      }
+    }
+  }, [subscriptionData]);
 
   // Settings tabs
   const tabs = [
@@ -84,6 +194,15 @@ export default function Settings() {
   const userName = user?.user_metadata?.full_name || userEmail.split("@")[0];
   const userAvatar = user?.user_metadata?.avatar_url || null;
   const userProvider = user?.app_metadata?.provider || "email";
+
+  // Format end date for display
+  const formattedEndDate = subscriptionEndDate 
+    ? new Date(subscriptionEndDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -291,43 +410,128 @@ export default function Settings() {
 
             {/* Subscription Tab */}
             {activeTab === "subscription" && (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Plan</h2>
-                
-                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-medium text-indigo-800">Current Plan</h3>
-                      <p className="text-sm text-indigo-600">
-                        {tokenUsage?.subscriptionTier === "PRO" 
-                          ? "Pro Plan" 
-                          : tokenUsage?.subscriptionTier === "ENTERPRISE" 
-                            ? "Enterprise Plan" 
-                            : "Free Plan"}
-                      </p>
-                    </div>
-                    <div className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
-                      {tokenUsage?.subscriptionTier === "PRO" 
-                        ? "500 tokens/month" 
-                        : tokenUsage?.subscriptionTier === "ENTERPRISE" 
-                          ? "2000 tokens/month" 
-                          : "50 tokens/month"}
+              <div>
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Plan</h2>
+                  
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium text-indigo-800">Current Plan</h3>
+                        <p className="text-sm text-indigo-600">
+                          {subscriptionTier === "PRO" 
+                            ? "Pro Plan" 
+                            : subscriptionTier === "ENTERPRISE" 
+                              ? "Enterprise Plan" 
+                              : "Free Plan"}
+                        </p>
+                      </div>
+                      <div className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                        {subscriptionTier === "PRO" 
+                          ? "500 tokens/month" 
+                          : subscriptionTier === "ENTERPRISE" 
+                            ? "2000 tokens/month" 
+                            : "50 tokens/month"}
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <Link href="/pricing">
-                  <Button variant="primary" className="w-full">
-                    View Plans & Upgrade
-                  </Button>
-                </Link>
-                
-                {/* Subscription will be implemented later */}
-                <div className="mt-8 border-t border-gray-200 pt-6">
-                  <h3 className="text-md font-medium text-gray-900 mb-2">Payment History</h3>
-                  <p className="text-sm text-gray-500 italic">
-                    No payment history available
-                  </p>
+                  
+                  {/* Subscription Status */}
+                  {subscriptionCancelled && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 mb-6">
+                      <div className="flex items-start">
+                        <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-2" />
+                        <div>
+                          <h3 className="font-medium text-amber-800">Subscription Cancellation Scheduled</h3>
+                          <p className="text-sm text-amber-700 mt-1">
+                            Your subscription will be downgraded to the Free plan on {formattedEndDate}.
+                            You&apos;ll continue to have access to all features until then.
+                          </p>
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="mt-3 text-xs"
+                            onClick={() => {
+                              // Future enhancement: Add API to reactivate subscription
+                              toast.error("This feature is coming soon. Please contact support to reactivate your subscription.");
+                            }}
+                          >
+                            Keep My Subscription
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Subscription Actions */}
+                  {subscriptionTier !== "FREE" && !subscriptionCancelled ? (
+                    <div className="space-y-4">
+                      <Link href="/pricing">
+                        <Button variant="primary" className="w-full">
+                          View Plans & Upgrade
+                        </Button>
+                      </Link>
+                      
+                      <div className="border-t border-gray-200 pt-4 mt-4">
+                        <h3 className="text-md font-medium text-gray-900 mb-3">Manage Subscription</h3>
+                        
+                        {!showCancelConfirm ? (
+                          <div className="space-y-3">
+                            <Button 
+                              variant="secondary" 
+                              className="w-full"
+                              onClick={() => setShowCancelConfirm(true)}
+                            >
+                              Cancel or Downgrade Subscription
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <h4 className="font-medium text-gray-800 mb-2">Confirm Cancellation</h4>
+                            <p className="text-sm text-gray-600 mb-4">
+                              Your subscription will be active until the end of the current billing period. 
+                              After that, your account will be downgraded to the Free plan with 50 tokens/month.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <Button 
+                                variant="danger" 
+                                className="sm:flex-1"
+                                disabled={cancelingSubscription}
+                                onClick={handleCancelSubscription}
+                              >
+                                {cancelingSubscription ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : null}
+                                Cancel Subscription
+                              </Button>
+                              <Button 
+                                variant="secondary" 
+                                className="sm:flex-1"
+                                onClick={() => setShowCancelConfirm(false)}
+                                disabled={cancelingSubscription}
+                              >
+                                Keep Subscription
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : !subscriptionCancelled ? (
+                    <Link href="/pricing">
+                      <Button variant="primary" className="w-full">
+                        Upgrade to Pro
+                      </Button>
+                    </Link>
+                  ) : null}
+                  
+                  {/* Payment History */}
+                  <div className="mt-8 border-t border-gray-200 pt-6">
+                    <h3 className="text-md font-medium text-gray-900 mb-2">Payment History</h3>
+                    <p className="text-sm text-gray-500 italic">
+                      No payment history available
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -448,17 +652,6 @@ export default function Settings() {
                     
                     <Button variant="secondary">
                       Enable 2FA
-                    </Button>
-                  </div>
-                  
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="font-medium text-red-600">Danger Zone</h3>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Permanently delete your account and all associated data
-                    </p>
-                    
-                    <Button variant="danger" className="text-sm px-3 py-1.5">
-                      Delete Account
                     </Button>
                   </div>
                 </div>

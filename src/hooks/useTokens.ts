@@ -1,14 +1,53 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { TokenService, TokenUsage, TokenTransaction, OperationType } from '@/lib/token-service';
+import { supabase } from '@/lib/supabase';
+
+// Define a type for subscription data
+export interface SubscriptionData {
+  id: string;
+  user_id: string;
+  subscription_tier: string;
+  subscription_start_date: string;
+  subscription_end_date: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useTokens() {
   const { user, loading: userLoading } = useUser();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const [transactionHistory, setTransactionHistory] = useState<TokenTransaction[]>([]);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [initialized, setInitialized] = useState(false);
+
+  // Fetch subscription data
+  const fetchSubscriptionData = useCallback(async () => {
+    if (!user?.id) {
+      console.log('fetchSubscriptionData: No user ID available');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching subscription data:', error);
+        return;
+      }
+
+      setSubscriptionData(data);
+    } catch (err) {
+      console.error('Error fetching subscription data:', err);
+    }
+  }, [user?.id]);
 
   // Fetch token usage data
   const fetchTokenUsage = useCallback(async () => {
@@ -63,7 +102,7 @@ export function useTokens() {
       setLoading(true);
       
       // Try to use the API endpoint first
-      const response = await fetch('/api/token-debug', {
+      const response = await fetch('/api/init-tokens', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,14 +185,16 @@ export function useTokens() {
       console.log(`User ID changed, fetching token data for: ${user.id}`);
       fetchTokenUsage();
       fetchTransactionHistory();
+      fetchSubscriptionData();
     } else {
       console.log('No user ID available, clearing token data');
       setTokenUsage(null);
       setTransactionHistory([]);
+      setSubscriptionData(null);
       setLoading(false);
       setInitialized(false);
     }
-  }, [user?.id, userLoading, fetchTokenUsage, fetchTransactionHistory]);
+  }, [user?.id, userLoading, fetchTokenUsage, fetchTransactionHistory, fetchSubscriptionData]);
 
   // Refresh token data periodically (every 5 minutes)
   useEffect(() => {
@@ -163,19 +204,23 @@ export function useTokens() {
       console.log('Refreshing token data (periodic update)');
       fetchTokenUsage();
       fetchTransactionHistory();
+      fetchSubscriptionData();
     }, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [user?.id, fetchTokenUsage, fetchTransactionHistory]);
+  }, [user?.id, fetchTokenUsage, fetchTransactionHistory, fetchSubscriptionData]);
 
   return {
     tokenUsage,
     transactionHistory,
+    subscriptionData,
+    setSubscriptionData,
     loading,
     error,
     initialized,
     fetchTokenUsage,
     fetchTransactionHistory,
+    fetchSubscriptionData,
     initializeTokens,
     canPerformOperation,
     recordTokenTransaction

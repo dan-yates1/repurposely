@@ -4,9 +4,73 @@ import { useTokens } from "@/hooks/useTokens";
 import { Sparkles, Clock, AlertCircle } from "lucide-react";
 import { Button } from "./button";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export function TokenUsageCard() {
   const { tokenUsage } = useTokens();
+  const [isFreeTier, setIsFreeTier] = useState(true);
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    async function checkSubscriptionTier() {
+      try {
+        // Get the user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log("TokenUsageCard: No user found");
+          return;
+        }
+        
+        // Get subscription data
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from('user_subscriptions')
+          .select('subscription_tier, is_active')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (subscriptionError) {
+          console.error('Error fetching subscription tier:', subscriptionError);
+          return;
+        }
+        
+        if (subscriptionData) {
+          console.log('TokenUsageCard - User subscription data:', subscriptionData);
+          
+          // Check if user has an active paid plan
+          const tier = (subscriptionData.subscription_tier || '').toUpperCase();
+          const isActive = subscriptionData.is_active !== false; // Default to true if undefined
+          
+          const isPaidTier = tier === 'PRO' || tier === 'ENTERPRISE';
+          setIsFreeTier(!(isPaidTier && isActive));
+          
+          console.log(`TokenUsageCard - User has ${tier} plan, active: ${isActive}, showing upgrade button: ${!(isPaidTier && isActive)}`);
+          
+          // Force a refresh of token usage data
+          const { data: tokenData, error: tokenError } = await supabase
+            .from('token_usage')
+            .select('tokens_used, tokens_remaining')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (tokenError) {
+            console.error('Error fetching token usage:', tokenError);
+          } else {
+            console.log('TokenUsageCard - Token usage data:', tokenData);
+          }
+        } else {
+          console.log('TokenUsageCard - No subscription data found, assuming free tier');
+        }
+      } catch (error) {
+        console.error('Error checking subscription tier:', error);
+      }
+    }
+    
+    checkSubscriptionTier();
+  }, [supabase]);
 
   // Default values in case token usage data isn't loaded yet
   const tokensRemaining = tokenUsage?.tokensRemaining || 0;
@@ -41,7 +105,7 @@ export function TokenUsageCard() {
           {/* Progress bar */}
           <div className="w-full md:max-w-md">
             <div className="flex justify-between text-sm mb-1">
-              <span className="font-medium">{tokensRemaining} tokens remaining</span>
+              <span className="font-medium text-gray-900">{tokensRemaining} tokens remaining</span>
               <span className="text-gray-600">{totalTokens} total</span>
             </div>
             <div className="h-2.5 w-full bg-gray-200 rounded-full overflow-hidden">
@@ -71,12 +135,15 @@ export function TokenUsageCard() {
             </div>
           )}
           
-          <Link href="/pricing">
-            <Button variant="primary" className="flex items-center">
-              <Sparkles className="h-4 w-4 mr-2" />
-              <span>Get More Tokens</span>
-            </Button>
-          </Link>
+          {/* Only show "Get More Tokens" button for free tier users */}
+          {isFreeTier && (
+            <Link href="/pricing">
+              <Button variant="primary" className="flex items-center">
+                <Sparkles className="h-4 w-4 mr-2" />
+                <span>Get More Tokens</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
       

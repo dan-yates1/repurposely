@@ -20,7 +20,7 @@ export function Logo({ className = "", text = true, large = false }: LogoProps) 
           priority
         />
         {text && (
-          <h1 className={`font-medium tracking-tight text-indigo-600 ${large ? 'text-2xl' : 'text-lg'}`}>Repurposely</h1>
+          <h1 className={`font-semibold tracking-tight text-indigo-600 ${large ? 'text-2xl' : 'text-lg'}`}>Repurposely</h1>
         )}
       </div>
     </Link>
