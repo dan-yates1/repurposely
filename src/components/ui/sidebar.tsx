@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -14,6 +15,7 @@ export function Sidebar() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userInitial, setUserInitial] = useState<string>('U');
   const [userPlan, setUserPlan] = useState<string>('Free');
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -41,6 +43,11 @@ export function Sidebar() {
         if (email) {
           setUserName(email.split('@')[0]);
           setUserInitial(email.charAt(0).toUpperCase());
+        }
+        
+        // Set profile image if available
+        if (data.user.user_metadata?.avatar_url) {
+          setProfileImageUrl(data.user.user_metadata.avatar_url);
         }
         
         // Fetch user subscription plan
@@ -246,8 +253,18 @@ export function Sidebar() {
             aria-haspopup="true"
             aria-expanded={isDropdownOpen}
           >
-            <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 ${isCollapsed ? 'mb-1' : 'mr-3'}`}>
-              {userInitial}
+            <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 ${isCollapsed ? 'mb-1' : 'mr-3'} overflow-hidden`}>
+              {profileImageUrl ? (
+                <Image 
+                  src={profileImageUrl} 
+                  alt="Profile" 
+                  width={32} 
+                  height={32} 
+                  className="object-cover"
+                />
+              ) : (
+                userInitial
+              )}
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">

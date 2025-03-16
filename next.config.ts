@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
       'placehold.co',
       'placekitten.com',
       'placeimg.com',
-      'randomuser.me'
+      'randomuser.me',
+      'lh3.googleusercontent.com'
     ],
   }
 };
