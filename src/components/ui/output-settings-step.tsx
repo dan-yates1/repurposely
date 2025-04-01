@@ -147,12 +147,12 @@ export function OutputSettingsStep({
               value={targetAudience}
               onChange={e => setTargetAudience(e.target.value)}
               placeholder="e.g., Professionals, Students, etc."
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             
             {/* Show suggestions when typing */}
             {targetAudience && filteredSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+              <div className="absolute z-10 w-full mt-1 text-gray-700 bg-white border border-gray-200 rounded-md shadow-lg">
                 {filteredSuggestions.map((suggestion, index) => (
                   <button
                     key={index}

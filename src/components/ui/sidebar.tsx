@@ -221,7 +221,7 @@ export function Sidebar() {
             aria-haspopup="true"
             aria-expanded={isDropdownOpen}
           >
-            <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 ${isCollapsed ? 'mb-1' : 'mr-3'} overflow-hidden`}>
+            <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white ${isCollapsed ? 'mb-1' : 'mr-3'} overflow-hidden`}>
               {profileImageUrl ? (
                 <Image 
                   src={profileImageUrl} 

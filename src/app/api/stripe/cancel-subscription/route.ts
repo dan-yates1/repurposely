@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
+import { stripe } from '@/lib/stripe-server'; // Import stripe server instance
+import { createAdminClient } from "@/lib/supabase-admin"; // Use admin client for reliable db access
 
 // Prevent Next.js from caching the response
 export const dynamic = 'force-dynamic';
@@ -8,126 +10,77 @@ export async function POST(request: NextRequest) {
   try {
     // Extract the auth token from the request headers
     const authHeader = request.headers.get('authorization');
-    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log("No valid auth header found");
-      return NextResponse.json(
-        { error: "Unauthorized - Please provide a valid authentication token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized - Missing token" }, { status: 401 });
     }
-    
-    // Get the token from the Authorization header
     const token = authHeader.split(' ')[1];
-    
-    if (!token) {
-      console.log("No token found in auth header");
-      return NextResponse.json(
-        { error: "Unauthorized - No token provided" },
-        { status: 401 }
-      );
-    }
-    
-    console.log("Token received, creating Supabase client");
-    
-    // Create a Supabase client with the user's token
-    const supabase = createClient(
+
+    // --- Use Supabase client with provided token for auth check ---
+    const supabaseUserClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      }
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
-    
-    // Get user data from the token
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
+    const { data: userData, error: userError } = await supabaseUserClient.auth.getUser();
     if (userError || !userData.user) {
-      console.error("Invalid token:", userError);
-      return NextResponse.json(
-        { error: "Invalid authentication token" },
-        { status: 401 }
-      );
+      console.error("Invalid token during cancellation:", userError);
+      return NextResponse.json({ error: "Invalid authentication token" }, { status: 401 });
     }
-    
     const userId = userData.user.id;
-    console.log("User authenticated:", userId);
-    
-    // Get the user's subscription data
-    const { data: subscriptionData, error: subscriptionError } = await supabase
+    console.log("User authenticated for cancellation:", userId);
+    // --- Auth check complete ---
+
+    // --- Use Supabase Admin client to fetch subscription ID ---
+    const supabaseAdmin = createAdminClient();
+    const { data: subscriptionData, error: subscriptionError } = await supabaseAdmin
       .from("user_subscriptions")
-      .select("*")
+      .select("stripe_subscription_id, subscription_tier, is_active") // Select needed fields
       .eq("user_id", userId)
-      .single();
+      .maybeSingle(); // Use maybeSingle to handle null case gracefully
 
     if (subscriptionError) {
-      console.error("Error fetching subscription:", subscriptionError);
+      console.error("Error fetching subscription for cancellation:", subscriptionError);
+      return NextResponse.json({ error: "Failed to fetch subscription data" }, { status: 500 });
+    }
+
+    // Check if there's an active subscription with a Stripe ID
+    if (!subscriptionData?.stripe_subscription_id || !subscriptionData.is_active) {
+      console.log("No active subscription found or missing Stripe ID for user:", userId);
       return NextResponse.json(
-        { error: "Failed to fetch subscription data" },
-        { status: 500 }
+        { error: "No active subscription found to cancel." },
+        { status: 400 } // Bad request - nothing to cancel
       );
     }
 
-    if (!subscriptionData) {
-      console.error("No subscription found for user:", userId);
-      return NextResponse.json(
-        { error: "No active subscription found" },
-        { status: 400 }
-      );
-    }
+    const stripeSubscriptionId = subscriptionData.stripe_subscription_id;
+    console.log("Found active subscription to cancel:", stripeSubscriptionId);
 
-    console.log("Current subscription:", subscriptionData);
-    
-    // Set the end date to the end of the current billing period (one month from now)
-    const currentDate = new Date();
-    // If subscription_end_date is already set and in the future, use that
-    // Otherwise calculate a new date one month from now
-    let endDate = subscriptionData.subscription_end_date 
-      ? new Date(subscriptionData.subscription_end_date) 
-      : new Date(currentDate);
-      
-    // If end date is in the past or not set, set it to one month from now
-    if (!endDate || endDate <= currentDate) {
-      endDate = new Date(currentDate);
-      endDate.setMonth(endDate.getMonth() + 1);
-    }
-    
-    console.log("Setting subscription to end at:", endDate.toISOString());
-    
-    // Update the subscription status in the database - mark as not active at the end of billing period
-    const { error: updateError } = await supabase
-      .from("user_subscriptions")
-      .update({
-        is_active: false,  // Mark as inactive
-        subscription_end_date: endDate.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-      
-    if (updateError) {
-      console.error("Error updating subscription in database:", updateError);
-      return NextResponse.json(
-        { error: "Failed to update subscription status" },
-        { status: 500 }
-      );
-    }
+    // --- Call Stripe API to cancel at period end ---
+    const updatedSubscription = await stripe.subscriptions.update(stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
+    console.log("Stripe subscription updated to cancel at period end:", updatedSubscription.id);
 
-    console.log("Subscription cancellation completed successfully");
-    
+    // --- IMPORTANT: Do NOT update the database here ---
+    // The webhook handler for 'customer.subscription.updated' will receive
+    // the event from Stripe (triggered by the update above) and update the 
+    // database record accordingly (setting is_active based on status, etc.).
+    // This keeps our database in sync with Stripe as the source of truth.
+
+    // Return the date when the subscription will actually end
+    const cancelDate = new Date(updatedSubscription.current_period_end * 1000).toISOString();
+
     return NextResponse.json({
       success: true,
-      message: "Your subscription will be canceled at the end of the current billing period",
-      cancelDate: endDate.toISOString(),
+      message: "Your subscription cancellation has been scheduled with Stripe.",
+      cancelDate: cancelDate, // Send back the actual end date from Stripe
     });
+
   } catch (error) {
-    console.error("Error canceling subscription:", error);
+    console.error("Error canceling subscription via Stripe API:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: errorMessage },
+      { error: `Failed to cancel subscription: ${errorMessage}` },
       { status: 500 }
     );
   }

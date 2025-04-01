@@ -13,9 +13,10 @@ export const getStripe = () => {
 
 // Price IDs for each subscription tier
 export const STRIPE_PRICE_IDS = {
-  FREE: "price_free", // You won't charge for this, but good to have for reference
-  PRO: "price_1R3LHk05YRh3Yy7Qwuz1EPQ4", // Test mode price ID for Pro plan
-  ENTERPRISE: "price_1R3LHk05YRh3Yy7QsFeTh0Ae", // Test mode price ID for Enterprise plan
-  // PRO: "price_1R3IoI05YRh3Yy7QB0GdwRrt", // Live mode price ID
-  // ENTERPRISE: "price_1R3IrE05YRh3Yy7QEF10Pprs", // Live mode price ID
+  FREE: "price_free", // Placeholder for free tier reference
+  PRO: "price_1R8kax05YRh3Yy7QhfHgWCQu", // CORRECT Test mode price ID for Pro plan
+  ENTERPRISE: "price_1R8kax05YRh3Yy7Qu1wyV6BG", // CORRECT Test mode price ID for Enterprise plan
+  // Add Live mode IDs when ready
+  // PRO_LIVE: "price_...", 
+  // ENTERPRISE_LIVE: "price_...", 
 };

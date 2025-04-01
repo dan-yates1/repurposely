@@ -72,6 +72,19 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
+/* Gradient animation for hero image border */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  animation: gradient 15s ease infinite;
+  background-size: 200% 200%; /* Required for the gradient movement */
+}
+
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .max-w-7xl {

@@ -36,10 +36,18 @@ export async function POST(request: NextRequest) {
           repurposed_content: repurposedContent,
           output_format: outputFormat,
           tone: tone,
-          content_length: contentLength || 'medium',
+          // content_length: contentLength || 'medium', // Column does not exist in schema
           target_audience: targetAudience || 'general',
           created_at: new Date().toISOString(),
-        });
+          // Add other existing columns from schema if needed (e.g., content_type, metadata)
+          content_type: outputFormat, // Assuming outputFormat maps to content_type for now
+          metadata: { // Example metadata
+             tone_used: tone,
+             length_setting: contentLength || 'medium',
+              audience_setting: targetAudience || 'general'
+           }
+           // status: 'draft' // Column does not exist in schema
+         });
 
         if (error) {
           console.error('Error saving to history:', error);

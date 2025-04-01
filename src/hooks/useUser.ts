@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js'; // Import Session
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null); // Add state for session
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -12,13 +13,15 @@ export function useUser() {
     const getUser = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase.auth.getUser();
+        // Get session which includes user data
+        const { data: sessionData, error } = await supabase.auth.getSession(); 
         
         if (error) {
           throw error;
         }
         
-        setUser(data.user);
+        setUser(sessionData.session?.user ?? null);
+        setSession(sessionData.session); // Store the session
       } catch (err) {
         console.error('Error getting user:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
@@ -33,6 +36,7 @@ export function useUser() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
+        setSession(session); // Update session on auth state change
       }
     );
 
@@ -42,5 +46,5 @@ export function useUser() {
     };
   }, []);
 
-  return { user, loading, error };
+  return { user, session, loading, error }; // Return session
 }

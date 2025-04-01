@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+// import Link from "next/link"; // Removed unused import
 import toast, { Toaster } from "react-hot-toast";
 import {
   Loader2,
   Sparkles,
 } from "lucide-react";
+import { useUser } from "@/hooks/useUser"; // Import useUser
 import { useTokens } from "@/hooks/useTokens";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { OperationType } from "@/lib/token-service";
 import { ContentAnalysisService, ContentQualityMetrics } from "@/lib/content-analysis-service";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"; // Import Breadcrumbs
 import { CreationSteps } from "@/components/ui/creation-steps";
 import { TemplateSelectionStep } from "@/components/ui/template-selection-step";
 import { ContentInputStep } from "@/components/ui/content-input-step";
@@ -50,6 +52,7 @@ export default function Create() {
   
   // Token management
   const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
+  const { user } = useUser(); // Get user object
 
   // Handle template selection
   const handleTemplateSelect = (template: string) => {
@@ -124,28 +127,42 @@ export default function Create() {
     }
 
     setLoading(true);
+    setRepurposedContent(""); // Clear previous results
+    
+    // Get user ID from useUser hook
+    const userId = user?.id; 
 
     try {
-      // Call repurpose API (simulated for now)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call the actual repurpose API endpoint
+      const response = await fetch("/api/repurpose", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Add auth token if your API requires it (recommended)
+          // Authorization: `Bearer ${accessToken}` 
+        },
+        body: JSON.stringify({
+          originalContent,
+          outputFormat: selectedTemplate, // Use template ID as format
+          tone,
+          contentLength,
+          targetAudience,
+          userId: userId || null, // Send userId if available
+        }),
+      });
 
-      // Generate placeholder content based on template
-      let placeholderContent = "";
-      switch (selectedTemplate) {
-        case "twitter":
-          placeholderContent = `🧵 Thread on ${originalContent.substring(0, 30)}...\n\n1/ ${originalContent.substring(0, 200)}...\n\n2/ [Rest of thread]\n\n3/ Key takeaways: [Summary]\n\n4/ If you found this valuable, please RT & follow for more insights on ${targetAudience ? targetAudience : "this topic"}!\n\n#ContentCreation`;
-          break;
-        case "linkedin":
-          placeholderContent = `🔍 ${originalContent.substring(0, 30)}...\n\nI've been thinking about this topic recently and wanted to share some insights.\n\n${originalContent.substring(0, 300)}...\n\nWhat are your thoughts on this? Share in the comments below!\n\n#${selectedTemplate} #ProfessionalDevelopment`;
-          break;
-        default:
-          placeholderContent = `# ${originalContent.substring(0, 30)}...\n\n${originalContent.substring(0, 400)}...\n\n## Key Points\n\n- Point 1\n- Point 2\n- Point 3\n\n## Conclusion\n\nThank you for reading! Let me know your thoughts in the comments.`;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "API request failed");
       }
 
-      setRepurposedContent(placeholderContent);
+      setRepurposedContent(data.repurposedContent);
 
-      // Record token transaction
-      await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
+      // Record token transaction only if API call was successful
+      if (userId) { // Only record if user is logged in
+         await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
+      }
 
       toast.success("Content repurposed successfully");
       
@@ -329,17 +346,8 @@ export default function Create() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
       
-      {/* Breadcrumb navigation */}
-      <div className="flex items-center mb-6">
-        <Link
-          href="/dashboard"
-          className="text-gray-500 text-sm hover:text-gray-700"
-        >
-          Dashboard
-        </Link>
-        <span className="mx-2 text-gray-400">/</span>
-        <span className="text-gray-700 text-sm font-medium">New Content</span>
-      </div>
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "New Content" }]} />
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
@@ -362,6 +370,9 @@ export default function Create() {
           currentStep={currentStep}
           setCurrentStep={setCurrentStep}
           onComplete={handleSubmit}
+          // Pass state needed for validation
+          selectedTemplate={selectedTemplate} 
+          // originalContent={originalContent} // Removed unused prop
         />
       </div>
     </div>

@@ -52,7 +52,7 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
     switch (platform) {
       case 'twitter':
         return (
-          <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden text-gray-800">
             <div className="p-4 space-y-4">
               {Array.isArray(formattedContent) ? (
                 formattedContent.map((tweet, index) => (
@@ -103,7 +103,7 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
         
       case 'linkedin':
         return (
-          <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="max-w-md mx-auto bg-white rounded-xl shadow-md text-gray-800 overflow-hidden">
             <div className="p-4">
               <div className="flex items-start mb-3">
                 <div className="h-12 w-12 rounded-full overflow-hidden mr-3">
@@ -133,7 +133,7 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
         
       case 'facebook':
         return (
-          <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="max-w-md mx-auto bg-white rounded-xl text-gray-800 shadow-md overflow-hidden">
             <div className="p-4">
               <div className="flex items-start mb-3">
                 <div className="h-10 w-10 rounded-full overflow-hidden mr-2">
@@ -163,13 +163,13 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
         
       case 'instagram':
         return (
-          <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden text-gray-700">
             <div className="border-b border-gray-200 p-3">
               <div className="flex items-center">
                 <div className="h-8 w-8 rounded-full overflow-hidden mr-2">
                   <Avatar initials="YH" size={32} />
                 </div>
-                <div className="font-semibold">your_handle</div>
+                <div className="text-gray-800 font-semibold">your_handle</div>
               </div>
             </div>
             <div className="bg-gray-100 aspect-square flex items-center justify-center">
@@ -194,7 +194,7 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
       case 'blog':
       default:
         return (
-          <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md text-gray-700 overflow-hidden">
             <div className="p-6">
               <h1 className="text-2xl font-bold mb-4">
                 {content.split('\n')[0].replace(/^#\s*/, '')}

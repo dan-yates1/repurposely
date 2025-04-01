@@ -110,7 +110,7 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             id="image-size"
             value={imageSize}
             onChange={(e) => setImageSize(e.target.value as ImageSize)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             disabled={isGenerating}
           >
             <option value="256x256">Small (256x256)</option>
@@ -129,7 +129,7 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             id="image-style"
             value={imageStyle}
             onChange={(e) => setImageStyle(e.target.value as ImageStyle)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none text-gray-700 focus:ring-2 focus:ring-indigo-500"
             disabled={isGenerating}
           >
             <option value="natural">Natural</option>

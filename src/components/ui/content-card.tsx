@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { FileText, Twitter, Linkedin, BookOpen, Mail, Video } from 'lucide-react';
+import React from 'react'; 
 
 interface ContentCardProps {
   id?: string;
@@ -10,6 +11,7 @@ interface ContentCardProps {
   type: string;
   status?: 'published' | 'draft';
   onClick?: () => void;
+  // Removed onEdit/onDelete props
 }
 
 export function ContentCard({ 
@@ -56,10 +58,12 @@ export function ContentCard({
         )}
       </div>
       <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-500">{description}</p>
+      <p className="text-gray-500 mb-4">{description}</p> 
+      {/* Removed Actions Footer */}
     </>
   );
 
+  // If onClick is provided, use it for the whole card
   if (onClick) {
     return (
       <div 
@@ -71,6 +75,7 @@ export function ContentCard({
     );
   }
 
+  // Otherwise, wrap in a Link to the content detail page
   return (
     <Link href={`/content/${id}`} className="block">
       <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">

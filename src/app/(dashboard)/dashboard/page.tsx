@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { ContentCard } from "@/components/ui/content-card";
 import { TemplateCard } from "@/components/ui/template-card";
-import { AnalyticsCard } from "@/components/ui/analytics-card";
+// import { AnalyticsCard } from "@/components/ui/analytics-card"; // Removed
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { AnalyticsMetricCard } from "@/components/ui/analytics-metric-card";
+// import { AnalyticsMetricCard } from "@/components/ui/analytics-metric-card"; // Removed
 import { TokenUsageCard } from "@/components/ui/token-usage-card";
 import { UpgradeButton } from "@/components/ui/upgrade-button";
 import { STRIPE_PRICE_IDS } from "@/lib/stripe";
@@ -96,13 +96,14 @@ export default function Dashboard() {
             
             // Check if user has an active paid plan
             const tier = (subData.subscription_tier || '').toUpperCase();
-            const isActive = subData.is_active !== false; // Default to true if undefined
+            // const isActive = subData.is_active !== false; // We don't need is_active for this specific check
             
             const isPaidTier = tier === 'PRO' || tier === 'ENTERPRISE';
-            const showUpgrade = !(isPaidTier && isActive);
+            // Show upgrade banner ONLY if the tier is NOT paid (i.e., it's FREE or null/undefined)
+            const showUpgrade = !isPaidTier; 
             
-            console.log(`Dashboard - User has ${tier} plan, active: ${isActive}, showing upgrade section: ${showUpgrade}`);
-            setIsFreeTier(showUpgrade);
+            console.log(`Dashboard - User has ${tier} plan, showing upgrade section: ${showUpgrade}`);
+            setIsFreeTier(showUpgrade); // Set state based on whether the tier is paid
             
             // Force a refresh of the token usage data to ensure it's up to date
             try {
@@ -131,13 +132,7 @@ export default function Dashboard() {
     getUserData();
   }, []);
 
-  // Sample analytics data
-  const analyticsData = {
-    contentCreated: 12,
-    totalViews: 1428,
-    totalEngagements: 244,
-    conversionRate: 3.7,
-  };
+  // Removed Sample analytics data
 
   // Mock templates data
   const templates = [
@@ -251,12 +246,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Dashboard Tabs */}
+      {/* Dashboard Tabs - Remove Analytics */}
       <div className="mb-8">
         <Tabs
           tabs={[
             { id: "all", label: "All Content" },
-            { id: "analytics", label: "Analytics" },
+            // { id: "analytics", label: "Analytics" }, // Removed
             { id: "templates", label: "Templates" },
           ]}
           defaultTabId="all"
@@ -302,7 +297,7 @@ export default function Dashboard() {
               ))
             ) : (
               <div className="col-span-3 py-10 text-center">
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 mt-2 mb-4">
                   You haven&apos;t created any content yet. Click the button above to get started.
                 </p>
                 <Button
@@ -344,83 +339,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Analytics Summary */}
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Performance Overview
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <AnalyticsCard
-                title="Content Created"
-                value={analyticsData.contentCreated.toString()}
-                change="+3"
-                isPositive={true}
-              />
-              <AnalyticsCard
-                title="Total Views"
-                value={analyticsData.totalViews.toLocaleString()}
-                change="+12%"
-                isPositive={true}
-              />
-              <AnalyticsCard
-                title="Engagements"
-                value={analyticsData.totalEngagements.toLocaleString()}
-                change="+8%"
-                isPositive={true}
-              />
-              <AnalyticsCard
-                title="Conversion Rate"
-                value={`${analyticsData.conversionRate}%`}
-                change="-0.5%"
-                isPositive={false}
-              />
-            </div>
-          </div>
+          {/* Removed Analytics Summary Section */}
+          
         </div>
       )}
 
-      {/* Analytics Tab */}
-      {activeTab === "analytics" && (
-        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Content Analytics
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <AnalyticsMetricCard
-              title="Content Created"
-              value={analyticsData.contentCreated.toString()}
-              change="+3"
-              isPositive={true}
-              description="Total content pieces created this month"
-            />
-            <AnalyticsMetricCard
-              title="Total Views"
-              value={analyticsData.totalViews.toLocaleString()}
-              change="+12%"
-              isPositive={true}
-              description="Combined views across all platforms"
-            />
-            <AnalyticsMetricCard
-              title="Engagements"
-              value={analyticsData.totalEngagements.toLocaleString()}
-              change="+8%"
-              isPositive={true}
-              description="Likes, comments, and shares"
-            />
-            <AnalyticsMetricCard
-              title="Conversion Rate"
-              value={`${analyticsData.conversionRate}%`}
-              change="-0.5%"
-              isPositive={false}
-              description="Traffic that results in conversions"
-            />
-          </div>
-          <div className="h-60 bg-gray-100 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">Content Analytics Charts Coming Soon</p>
-          </div>
-        </div>
-      )}
-
+      {/* Removed Analytics Tab Content */}
+      
       {/* Templates Tab */}
       {activeTab === "templates" && (
         <div>

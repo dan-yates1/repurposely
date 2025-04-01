@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { stripe } from "@/lib/stripe-server";
+import { createAdminClient } from "@/lib/supabase-admin"; // Import admin client
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,71 +58,49 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = session.user.id;
+    const userEmail = session.user.email;
+    const userMetadata = session.user.user_metadata;
 
-    // Check for existing subscription data - using correct column name for your database schema
-    const { data: subscriptionData, error: subscriptionError } = await supabase
-      .from("user_subscriptions")
-      .select("*")  // Use * to see what columns are available
-      .eq("user_id", userId)
-      .single();
+    // Get Stripe customer ID from user metadata
+    let customerId = userMetadata?.stripe_customer_id;
+    console.log("Retrieved stripe_customer_id from metadata:", customerId);
 
-    if (subscriptionError && subscriptionError.code !== "PGRST116") {
-      console.error("Error fetching subscription:", subscriptionError);
-      return NextResponse.json(
-        { error: "Failed to fetch subscription data" },
-        { status: 500 }
-      );
-    }
-
-    // Log the available columns for debugging
-    console.log("Subscription data columns:", subscriptionData ? Object.keys(subscriptionData) : "No data found");
-
-    // Get or create Stripe customer ID
-    let customerId = subscriptionData?.stripe_customer_id;
-
-    // If we don't have a stripe_customer_id column, look for customer_id instead
-    if (!customerId && subscriptionData?.customer_id) {
-      customerId = subscriptionData.customer_id;
-      console.log("Using customer_id instead of stripe_customer_id:", customerId);
-    }
-
-    // If no customer exists, create one
+    // If no customer exists in metadata, create one in Stripe and update metadata
     if (!customerId) {
-      const userEmail = session.user.email;
-      
       if (!userEmail) {
+        console.error("User email not found for creating Stripe customer. User ID:", userId);
         return NextResponse.json(
-          { error: "User email not found" },
+          { error: "User email not found, cannot create Stripe customer." },
           { status: 400 }
         );
       }
       
+      console.log("No Stripe customer ID found in metadata, creating new Stripe customer for email:", userEmail);
       const customer = await stripe.customers.create({
         email: userEmail,
         metadata: {
-          userId: userId,
+          userId: userId, // Link Stripe customer to Supabase user ID
         },
       });
-
       customerId = customer.id;
+      console.log("Created new Stripe customer:", customerId);
 
-      // Store the customer ID in the user_subscriptions table using the correct column name
-      // Check which column name exists in your database schema
-      const columnToUse = subscriptionData && 'customer_id' in subscriptionData ? 'customer_id' : 'stripe_customer_id';
+      // Update user metadata in Supabase Auth using Admin client
+      const supabaseAdmin = createAdminClient();
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        userId,
+        { user_metadata: { ...userMetadata, stripe_customer_id: customerId } }
+      );
+
+      if (updateError) {
+        console.error("Failed to update user metadata with Stripe customer ID:", updateError);
+        // Proceeding anyway, but log the error. Checkout might still work.
+        // Consider if this should be a hard failure depending on requirements.
+      } else {
+        console.log("Successfully updated user metadata with Stripe customer ID:", customerId);
+      }
       
-      const updateData: Record<string, unknown> = {
-        user_id: userId,
-        subscription_tier: 'FREE', // Default to free plan
-        status: 'active',
-        updated_at: new Date().toISOString(),
-      };
-      
-      // Set the correct column name
-      updateData[columnToUse] = customerId;
-      
-      await supabase.from("user_subscriptions").upsert(updateData);
-      
-      console.log(`Stored customer ID in ${columnToUse} column:`, customerId);
+      // --- Removed incorrect upsert to user_subscriptions here ---
     }
 
     // Create a checkout session

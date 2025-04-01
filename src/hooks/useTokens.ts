@@ -36,16 +36,24 @@ export function useTokens() {
         .from('user_subscriptions')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
+      // Add detailed logging
       if (error) {
-        console.error('Error fetching subscription data:', error);
-        return;
+        // Log the specific error code and message if available
+        console.error(`Error fetching subscription data for user ${user.id}:`, JSON.stringify(error, null, 2));
+        // Don't set data if there's an error
+        setSubscriptionData(null); 
+        return; 
       }
 
+      // Log success and the data received
+      console.log(`Successfully fetched subscription data for user ${user.id}:`, data);
       setSubscriptionData(data);
+
     } catch (err) {
-      console.error('Error fetching subscription data:', err);
+      console.error(`Caught exception fetching subscription data for user ${user?.id}:`, err);
+      setSubscriptionData(null); // Clear data on exception
     }
   }, [user?.id]);
 

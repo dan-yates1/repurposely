@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+// import Link from "next/link"; // Removed unused import
 import { supabase } from "@/lib/supabase";
 import toast, { Toaster } from "react-hot-toast";
 import { 
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ContentCard } from "@/components/ui/content-card";
 import { Search } from "@/components/ui/search";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"; // Import Breadcrumbs
 
 interface ContentHistoryItem {
   id: string;
@@ -25,10 +26,10 @@ interface ContentHistoryItem {
   output_format?: string;
   content_type?: string;
   tone: string;
-  content_length: string;
   target_audience: string;
   created_at: string;
-  status?: "published" | "draft";
+  status?: "published" | "draft"; 
+  metadata?: Record<string, unknown>; 
 }
 
 export default function History() {
@@ -51,31 +52,18 @@ export default function History() {
         .eq("user_id", userId)
         .order("created_at", { ascending: sortOrder === "asc" });
 
-      // Apply format filter if selected
       if (selectedFormat) {
         query = query.eq("output_format", selectedFormat);
       }
-
-      // Apply timeframe filter if selected
       if (selectedTimeframe) {
         const now = new Date();
         const startDate = new Date();
-        
         switch (selectedTimeframe) {
-          case "today":
-            startDate.setHours(0, 0, 0, 0);
-            break;
-          case "week":
-            startDate.setDate(now.getDate() - 7);
-            break;
-          case "month":
-            startDate.setMonth(now.getMonth() - 1);
-            break;
-          case "year":
-            startDate.setFullYear(now.getFullYear() - 1);
-            break;
+          case "today": startDate.setHours(0, 0, 0, 0); break;
+          case "week": startDate.setDate(now.getDate() - 7); break;
+          case "month": startDate.setMonth(now.getMonth() - 1); break;
+          case "year": startDate.setFullYear(now.getFullYear() - 1); break;
         }
-        
         query = query.gte("created_at", startDate.toISOString());
       }
 
@@ -102,6 +90,8 @@ export default function History() {
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
           await fetchContentHistory(userData.user.id);
+        } else {
+           router.push('/auth'); 
         }
       } catch (error) {
         console.error("Error getting user data:", error);
@@ -109,7 +99,7 @@ export default function History() {
     };
 
     getUserData();
-  }, [selectedFormat, selectedTimeframe, sortOrder, fetchContentHistory]);
+  }, [fetchContentHistory, router]); 
 
   // Filter content by search query
   const filteredContent = contentHistory.filter((item) => {
@@ -123,12 +113,12 @@ export default function History() {
   // Output format options
   const formatOptions = [
     { id: null, label: "All Formats" },
-    { id: "twitter", label: "Twitter Thread" },
-    { id: "linkedin", label: "LinkedIn Post" },
-    { id: "blog", label: "Blog Article" },
-    { id: "instagram", label: "Instagram Caption" },
-    { id: "facebook", label: "Facebook Post" },
-    { id: "youtube", label: "YouTube Description" },
+    { id: "twitter-thread", label: "Twitter Thread" },
+    { id: "linkedin-post", label: "LinkedIn Post" },
+    { id: "blog-post", label: "Blog Article" },
+    { id: "instagram-caption", label: "Instagram Caption" },
+    { id: "facebook-post", label: "Facebook Post" },
+    { id: "youtube-script", label: "YouTube Script" },
   ];
 
   // Timeframe options
@@ -144,25 +134,12 @@ export default function History() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
 
-      {/* Header */}
-      <div className="flex items-center mb-6">
-        <Link
-          href="/dashboard"
-          className="text-gray-500 text-sm hover:text-gray-700"
-        >
-          Dashboard
-        </Link>
-        <span className="mx-2 text-gray-400">/</span>
-        <span className="text-gray-700 text-sm font-medium">Content History</span>
-      </div>
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Content History" }]} />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Content History</h1>
-        <Button 
-          onClick={() => router.push("/create")} 
-          variant="primary"
-          className="w-full sm:w-auto"
-        >
+        <Button onClick={() => router.push("/create")} variant="primary" className="w-full sm:w-auto">
           Create New Content
         </Button>
       </div>
@@ -178,7 +155,6 @@ export default function History() {
               onClear={() => setSearchQuery("")}
             />
           </div>
-          
           <div className="flex flex-col sm:flex-row gap-2">
             {/* Format Filter Dropdown */}
             <div className="relative">
@@ -190,18 +166,12 @@ export default function History() {
                   onChange={(e) => setSelectedFormat(e.target.value || null)}
                 >
                   {formatOptions.map(format => (
-                    <option 
-                      key={`format-${format.id || 'all'}`} 
-                      value={format.id || ""}
-                    >
-                      {format.label}
-                    </option>
+                    <option key={`format-${format.id || 'all'}`} value={format.id || ""}>{format.label}</option>
                   ))}
                 </select>
                 <ChevronDown className="h-4 w-4 text-gray-500 absolute right-2 pointer-events-none" />
               </div>
             </div>
-            
             {/* Timeframe Filter Dropdown */}
             <div className="relative">
               <div className="flex items-center bg-white border border-gray-200 rounded-md p-2 min-w-[160px]">
@@ -212,24 +182,14 @@ export default function History() {
                   onChange={(e) => setSelectedTimeframe(e.target.value || null)}
                 >
                   {timeframeOptions.map(timeframe => (
-                    <option 
-                      key={`timeframe-${timeframe.id || 'all'}`} 
-                      value={timeframe.id || ""}
-                    >
-                      {timeframe.label}
-                    </option>
+                    <option key={`timeframe-${timeframe.id || 'all'}`} value={timeframe.id || ""}>{timeframe.label}</option>
                   ))}
                 </select>
                 <ChevronDown className="h-4 w-4 text-gray-500 absolute right-2 pointer-events-none" />
               </div>
             </div>
-            
             {/* Sort Order Toggle */}
-            <Button 
-              variant="secondary" 
-              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-              className="flex items-center gap-2"
-            >
+            <Button variant="secondary" onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")} className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               <span>{sortOrder === "desc" ? "Newest First" : "Oldest First"}</span>
             </Button>
@@ -237,14 +197,12 @@ export default function History() {
         </div>
       </div>
 
-      {/* Content History */}
+      {/* Content History Grid */}
       {loading ? (
+        // Loading Skeletons
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array(6).fill(0).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-pulse"
-            >
+            <div key={i} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
               <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
               <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
@@ -267,11 +225,12 @@ export default function History() {
               date={new Date(item.created_at).toLocaleDateString()}
               type={item.output_format || "Text"}
               status={item.status || "draft"}
-              onClick={() => router.push(`/content/${item.id}`)}
+              // Default behavior links card to /content/[id]
             />
           ))}
         </div>
       ) : (
+        // No Content Message
         <div className="bg-white p-10 rounded-lg border border-gray-200 text-center">
           <SearchIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No content found</h3>

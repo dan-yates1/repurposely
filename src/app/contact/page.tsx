@@ -1,10 +1,10 @@
 "use client";
 
-import { Logo } from "@/components/ui/logo";
+// Removed Logo, Link, Button imports as they are handled by Navbar
 import { Footer } from "@/components/ui/footer";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { Navbar } from "@/components/ui/navbar"; // Import the shared Navbar
+import { Button } from "@/components/ui/button"; // Keep Button for the form
 
 export default function Contact() {
   // Client-side code only
@@ -66,34 +66,8 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navigation */}
-      <nav className="bg-white py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <Logo />
-            <div className="flex space-x-6 items-center">
-              <Link href="/auth">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Get Pro
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Use Shared Navigation */}
+      <Navbar />
 
       {/* Content */}
       <div className="flex-grow">

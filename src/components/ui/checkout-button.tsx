@@ -3,9 +3,11 @@
 import { Button } from "./button";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser"; // Import the hook
+import React from 'react'; // Ensure React is imported for ReactNode
 
+// Restore the interface definition
 interface CheckoutButtonProps {
   priceId: string;
   planName: string;
@@ -23,33 +25,41 @@ export function CheckoutButton({
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  // Get user AND session from the hook
+  const { user, session, loading: userLoading } = useUser(); 
 
   const handleCheckout = async () => {
+    // Don't proceed if user state is still loading
+    if (userLoading) {
+      toast("Checking authentication status...");
+      return; 
+    }
+
     try {
       setIsLoading(true);
       
-      // Check if we have a valid session
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        toast.error("Authentication error. Please try again.");
-        return;
-      }
-      
-      if (!sessionData.session) {
-        // Directly redirect to auth page with query params for price and plan
+      // Check if user is logged in using the hook's state
+      if (!user) {
+        // User is not logged in, redirect to auth page
         toast.error("Please log in to subscribe");
         router.push(`/auth?checkout_price=${priceId}&checkout_plan=${planName}`);
         return;
       }
       
       // Continue with checkout - user is authenticated
+      // Use the session object directly from the useUser hook state
+      if (!session?.access_token) {
+        toast.error("Authentication token not available. Please try logging out and back in.");
+        setIsLoading(false);
+        return;
+      }
+      const accessToken = session.access_token;
+
       const response = await fetch("/api/stripe/create-checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`, // Add Authorization header
         },
         body: JSON.stringify({
           priceId,
