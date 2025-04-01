@@ -138,7 +138,8 @@ export default function Home() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center">
-            <div className="lg:w-2/5 text-white mb-12 lg:mb-0 lg:pr-8">
+            {/* Adjusted width for text: lg:w-1/3 */}
+            <div className="lg:w-1/3 text-white mb-12 lg:mb-0 lg:pr-8">
               <div className="inline-block px-3 py-1 rounded-full bg-indigo-500/30 backdrop-blur-sm text-sm font-semibold text-indigo-100 mb-6 animate-fadeIn">
                 AI-POWERED CONTENT PLATFORM
               </div>
@@ -185,8 +186,9 @@ export default function Home() {
                 No credit card required. Upgrade anytime to Pro (500 tokens) or Enterprise (2000 tokens).
               </p>
             </div>
+            {/* Adjusted width for GIF: lg:w-2/3 */}
             <div
-              className="lg:w-3/5 animate-slideUp"
+              className="lg:w-2/3 animate-slideUp"
               style={{ animationDelay: "0.5s" }}
             >
               <div className="relative">
