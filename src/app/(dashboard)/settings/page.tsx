@@ -16,14 +16,15 @@ import {
   LogOut,
   Loader2,
   ArrowRight
-  // Info // Removed unused import
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"; // Import Breadcrumbs
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"; 
 import { useTokens } from "@/hooks/useTokens";
 import { TokenHistoryCard } from "@/components/ui/token-history";
-import { Badge } from "@/components/ui/badge"; // Import Badge
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label"; 
+import { Input } from "@/components/ui/input";
 
 export default function Settings() {
   usePageTitle("Account Settings");
@@ -42,19 +43,15 @@ export default function Settings() {
     app_metadata?: { provider?: string };
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("subscription"); 
+  const [activeTab, setActiveTab] = useState("account"); // Default to account tab
   const [signingOut, setSigningOut] = useState(false);
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  
-  // Use subscriptionData from hook directly for consistency
-  // const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
-  // const [subscriptionCancelled, setSubscriptionCancelled] = useState(false);
-  // const [subscriptionTier, setSubscriptionTier] = useState("FREE");
+  const [isSendingReset, setIsSendingReset] = useState(false); 
   
   const [isPortalLoading, setIsPortalLoading] = useState(false); 
   
-  // Fetch user data (subscription data comes from useTokens hook)
+  // Fetch user data
   useEffect(() => {
     const getUserData = async () => {
       setLoading(true);
@@ -93,35 +90,25 @@ export default function Settings() {
   const handleCancelSubscription = async () => {
     try {
       setCancelingSubscription(true);
-      
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !sessionData.session) {
         toast.error("Authentication failed. Please log in again.");
         router.push("/auth");
         return;
       }
-      
       const token = sessionData.session.access_token;
-      
-      console.log("Sending cancellation request with auth token");
-      
       const response = await fetch("/api/stripe/cancel-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
       });
-      
       const result = await response.json();
-      
       if (response.ok) {
         toast.success("Cancellation scheduled. Your plan remains active until the period ends.");
         setShowCancelConfirm(false);
-        
-        // Update the shared state via the hook's setter
         if (setSubscriptionData) {
             setSubscriptionData(prev => prev ? ({ ...prev, is_active: false, subscription_end_date: result.cancelDate }) : null);
         }
       } else {
-        console.error("Cancel subscription response:", response.status, result);
         throw new Error(result.error || "Failed to cancel subscription");
       }
     } catch (error) {
@@ -143,22 +130,40 @@ export default function Settings() {
         return;
       }
       const accessToken = sessionData.session.access_token;
-
       const response = await fetch("/api/stripe/create-portal", {
         method: "POST",
         headers: { "Authorization": `Bearer ${accessToken}` }
       });
-
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to create portal session");
-
       window.location.href = result.url;
-
     } catch (error) {
       console.error("Error redirecting to billing portal:", error);
       toast.error(error instanceof Error ? error.message : "Could not open billing portal.");
       setIsPortalLoading(false);
     } 
+  };
+ 
+  // Handle password reset request
+  const handlePasswordResetRequest = async () => {
+    if (!user?.email) {
+      toast.error("Could not find user email.");
+      return;
+    }
+    setIsSendingReset(true);
+    try {
+      const redirectUrl = window.location.origin + '/update-password'; 
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: redirectUrl,
+      });
+      if (error) throw error;
+      toast.success(`Password reset email sent to ${user.email}`);
+    } catch (error) {
+       console.error("Error sending password reset email:", error);
+       toast.error(error instanceof Error ? error.message : 'Failed to send reset email.');
+    } finally {
+       setIsSendingReset(false);
+    }
   };
 
   // Settings tabs definition
@@ -172,14 +177,15 @@ export default function Settings() {
 
   // User details for display
   const userEmail = user?.email || "";
-  const userName = user?.user_metadata?.full_name || userEmail.split("@")[0];
+  // Use email prefix as fallback if full_name is not set
+  const userName = user?.user_metadata?.full_name || userEmail.split("@")[0] || "User"; 
   const userAvatar = user?.user_metadata?.avatar_url || null;
   const userProvider = user?.app_metadata?.provider || "email";
 
   // Derived subscription state from hook data
   const currentTier = (subscriptionData?.subscription_tier || "FREE").toUpperCase();
-  const isActive = subscriptionData?.is_active ?? (currentTier !== "FREE"); // Assume active if paid tier and no data yet
-  const isCancelled = !isActive && currentTier !== "FREE"; // Cancelled if not active and not free
+  const isActive = subscriptionData?.is_active ?? (currentTier !== "FREE"); 
+  const isCancelled = !isActive && currentTier !== "FREE"; 
   const endDate = subscriptionData?.subscription_end_date;
   const startDate = subscriptionData?.subscription_start_date;
 
@@ -193,7 +199,6 @@ export default function Settings() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
 
-      {/* Breadcrumbs */}
       <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]} />
       
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h1>
@@ -213,14 +218,14 @@ export default function Settings() {
                   <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold">{userName.charAt(0).toUpperCase()}</div>
                 )}
                 <div>
-                  <h2 className="font-medium text-gray-900">{userName}</h2>
+                  {/* Display name from metadata or fallback */}
+                  <h2 className="font-medium text-gray-900">{userName}</h2> 
                   <p className="text-sm text-gray-500">{userEmail}</p>
                 </div>
               </div>
               <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md p-2 flex items-center mb-4">
                 <span>Signed in with <span className="font-medium">{userProvider}</span></span>
               </div>
-              {/* Sign Out Button */}
               <Button variant="secondary" onClick={handleSignOut} className="w-full flex items-center justify-center gap-2 text-sm" disabled={signingOut}>
                 {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 <span>Sign Out</span>
@@ -245,9 +250,38 @@ export default function Settings() {
           <div className="flex-1">
             {/* Account Tab */}
             {activeTab === "account" && (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-                 <h2 className="text-lg font-medium text-gray-900 mb-4">Account Information</h2>
-                 <p className="text-gray-500 italic">Account editing coming soon.</p>
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
+                 <div>
+                   <h2 className="text-lg font-medium text-gray-900 mb-4">Account Information</h2>
+                   <div className="space-y-4">
+                     <div>
+                       <Label htmlFor="email">Email</Label>
+                       <Input 
+                         id="email" 
+                         type="email" 
+                         value={userEmail} 
+                         disabled 
+                         className="mt-1 bg-gray-100 cursor-not-allowed"
+                        />
+                     </div>
+                     {/* Name input and button removed */}
+                   </div>
+                 </div>
+
+                  <div className="border-t border-gray-200 pt-6"> 
+                    <h2 className="text-lg font-medium text-gray-900 mb-4">Password</h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      To change your password, we&apos;ll send a secure reset link to your email address.
+                    </p>
+                    <Button 
+                      variant="secondary" 
+                      onClick={handlePasswordResetRequest} 
+                      disabled={isSendingReset} 
+                    >
+                       {isSendingReset ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                       Send Password Reset Email
+                    </Button>
+                 </div>
               </div>
             )}
 
@@ -301,7 +335,6 @@ export default function Settings() {
                 <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
                   <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Details</h2>
                   
-                  {/* Enhanced Plan & Status Display */}
                   <div className="border border-gray-200 rounded-lg p-4 mb-6 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-600">Current Plan:</span>
@@ -329,15 +362,10 @@ export default function Settings() {
                      </div>
                   </div>
                   
-                  {/* Cancellation Notice (Redundant if status shows cancellation) */}
-                  {/* {isCancelled && ( ... )} */}
-                  
-                  {/* Subscription Actions */}
                   {currentTier === "FREE" ? (
                      <Link href="/pricing"><Button variant="primary" className="w-full">Upgrade to Pro</Button></Link>
                   ) : (
                     <div className="space-y-4">
-                      {/* Show Upgrade only if not Enterprise? */}
                       {currentTier !== 'ENTERPRISE' && (
                          <Link href="/pricing"><Button variant="primary" className="w-full">View Plans & Upgrade</Button></Link>
                       )}
@@ -349,7 +377,7 @@ export default function Settings() {
                             <Button variant="secondary" className="w-full" onClick={handleManageBilling} disabled={isPortalLoading || isCancelled}>
                               {isPortalLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Manage Billing & Invoices
                             </Button>
-                            {!isCancelled && ( // Only show Cancel if not already cancelled
+                            {!isCancelled && ( 
                               <Button variant="outline" className="w-full text-red-600 border-red-300 hover:bg-red-50" onClick={() => setShowCancelConfirm(true)}>Cancel Subscription</Button>
                             )}
                           </div>
@@ -369,7 +397,6 @@ export default function Settings() {
                     </div>
                   )}
                   
-                  {/* Payment History */}
                   <div className="mt-8 border-t border-gray-200 pt-6">
                      <h3 className="text-md font-medium text-gray-900 mb-2">Payment History</h3>
                      <p className="text-sm text-gray-500 italic">No payment history available</p>
