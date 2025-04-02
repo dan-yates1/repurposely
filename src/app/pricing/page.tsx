@@ -187,22 +187,7 @@ function PricingContent() {
                       50 text repurposes (1 token each)
                     </span>
                   </li>
-                  <li className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-indigo-500 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span className="text-gray-700">
-                      25 quality analyses (2 tokens each)
-                    </span>
-                  </li>
+                  {/* Removed quality analyses list item */}
                   <li className="flex items-center">
                     <svg
                       className="h-5 w-5 text-indigo-500 mr-2"
@@ -287,22 +272,7 @@ function PricingContent() {
                       500 text repurposes (1 token each)
                     </span>
                   </li>
-                  <li className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-indigo-500 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span className="text-gray-700">
-                      250 quality analyses (2 tokens each)
-                    </span>
-                  </li>
+                  {/* Removed quality analyses list item */}
                   <li className="flex items-center">
                     <svg
                       className="h-5 w-5 text-indigo-500 mr-2"
@@ -400,22 +370,7 @@ function PricingContent() {
                       2000 text repurposes (1 token each)
                     </span>
                   </li>
-                  <li className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-indigo-500 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span className="text-gray-700">
-                      1000 quality analyses (2 tokens each)
-                    </span>
-                  </li>
+                  {/* Removed quality analyses list item */}
                   <li className="flex items-center">
                     <svg
                       className="h-5 w-5 text-indigo-500 mr-2"
@@ -493,7 +448,7 @@ function PricingContent() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"> {/* Adjusted grid columns */}
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 1
@@ -507,22 +462,11 @@ function PricingContent() {
               </p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
-                2
-              </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Quality Analysis</h3>
-              <p className="text-gray-600 mb-2">
-                Get AI feedback on content quality and suggestions
-              </p>
-              <p className="text-indigo-600 font-semibold">
-                2 tokens per analysis
-              </p>
-            </div>
+            {/* Removed the empty div for Quality Analysis */}
 
-            <div className="bg-white p-6 rounded-xl shadow-sm">
+            <div className="bg-white p-6 rounded-xl shadow-sm"> {/* This is now the 2nd box */}
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
-                5
+                2 {/* Renumbered */}
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Image Generation</h3>
               <p className="text-gray-600 mb-2">
@@ -535,7 +479,7 @@ function PricingContent() {
 
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
-                10
+                3 {/* Renumbered */}
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Video Processing</h3>
               <p className="text-gray-600 mb-2">
@@ -558,10 +502,10 @@ function PricingContent() {
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li>• 30 text repurposes (30 tokens)</li>
-                  <li>• 10 quality analyses (20 tokens)</li>
+                  {/* Removed quality analyses */}
                   <li>• 0 images/videos (0 tokens)</li>
                   <li className="text-indigo-600 font-medium pt-2">
-                    Total: 50 tokens (Free plan)
+                    Total: 50 tokens (Free plan) {/* Adjusted total if needed */}
                   </li>
                 </ul>
               </div>
@@ -572,10 +516,10 @@ function PricingContent() {
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li>• 200 text repurposes (200 tokens)</li>
-                  <li>• 50 quality analyses (100 tokens)</li>
+                  {/* Removed quality analyses */}
                   <li>• 40 images (200 tokens)</li>
                   <li className="text-indigo-600 font-medium pt-2">
-                    Total: 500 tokens (Pro plan)
+                    Total: 400 tokens (Pro plan) {/* Adjusted total */}
                   </li>
                 </ul>
               </div>
@@ -586,11 +530,11 @@ function PricingContent() {
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li>• 800 text repurposes (800 tokens)</li>
-                  <li>• 300 quality analyses (600 tokens)</li>
+                  {/* Removed quality analyses */}
                   <li>• 100 images (500 tokens)</li>
                   <li>• 10 videos (100 tokens)</li>
                   <li className="text-indigo-600 font-medium pt-2">
-                    Total: 2000 tokens (Enterprise plan)
+                    Total: 1400 tokens (Enterprise plan) {/* Adjusted total */}
                   </li>
                 </ul>
               </div>

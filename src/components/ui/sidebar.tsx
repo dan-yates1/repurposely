@@ -187,7 +187,7 @@ export function Sidebar() {
         {/* Token Display */}
         <div className={`mt-auto ${isCollapsed ? 'px-2' : 'px-3'} mb-4`}>
           {tokensError ? (
-            <button onClick={() => router.push('/token-fix')} className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100`}>
+            <button className={`w-full flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100`}>
               <AlertCircle size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
               {!isCollapsed && <span className="text-sm font-medium">Fix Token Issue</span>}
             </button>

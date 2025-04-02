@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react'; // Removed unused Copy
 // Removed unused toast import
 import { Label } from '@/components/ui/label'; 
 import { Textarea } from '@/components/ui/textarea'; 
-import { Checkbox } from '@/components/ui/checkbox'; // Keep this, will address if error persists
+import { Checkbox } from './checkbox';
 
 // Define the props based on the parent component (create/page.tsx)
 interface ImageGeneratorStepProps {

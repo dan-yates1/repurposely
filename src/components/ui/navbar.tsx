@@ -4,15 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-// Removed unused createClientComponentClient import
 import { usePathname, useRouter } from "next/navigation";
-import { User } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
-import { supabase as supabaseClient } from "@/lib/supabase";
+import { supabase as supabaseClient } from "@/lib/supabase"; // Keep for signOut
+import { useUser } from "@/hooks/useUser"; // Import the useUser hook
 
 export function Navbar() {
-  const [user, setUser] = useState<User | null>(null);
-  // Removed unused loading state
+  const { user, loading: userLoading } = useUser(); // Use the hook for user state
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -39,55 +37,12 @@ export function Navbar() {
     };
   }, []);
 
-  // Auth check effect
-  useEffect(() => {
-    // Removed loading timeout logic
-
-    const checkAuth = async () => {
-      try {
-        const { data: globalData } = await supabaseClient.auth.getSession();
-        if (globalData.session) {
-          const { data: userData } = await supabaseClient.auth.getUser();
-          setUser(userData.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-        setUser(null);
-      } // Removed finally block setting loading state
-    };
-
-    checkAuth(); // Initial check
-
-    // Auth state change listener
-    const { data: listener } = supabaseClient.auth.onAuthStateChange(
-      async (event, session) => {
-        try {
-          if (session) {
-            const { data: userData } = await supabaseClient.auth.getUser();
-            setUser(userData.user);
-          } else {
-            setUser(null);
-          }
-        } catch (error) {
-          console.error("Error in auth state change handler:", error);
-          setUser(null);
-        } // Removed finally block setting loading state
-      }
-    );
-
-    return () => {
-      listener?.subscription?.unsubscribe();
-    };
-  // Only run this effect once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Removed internal auth check effect and listener - useUser handles this
 
   const handleSignOut = async () => {
     try {
       await supabaseClient.auth.signOut();
-      setUser(null);
+      // No need to setUser(null) here, useUser hook's listener will handle it
       router.push("/");
       setUserMenuOpen(false);
       setMobileMenuOpen(false);
@@ -118,7 +73,7 @@ export function Navbar() {
         <div id="user-menu-items" className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 origin-top-right animate-scale-in" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
           <div className="px-4 py-2 border-b border-gray-100"><p className="text-sm font-medium text-gray-900 truncate">{user?.email}</p></div>
           <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Dashboard</Link>
-          <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Account Settings</Link>
+          <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Account Settings</Link> {/* Corrected link */}
           <button onClick={handleSignOut} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100" role="menuitem">Sign Out</button>
         </div>
       )}
@@ -144,7 +99,10 @@ export function Navbar() {
       </div>
       {/* User Info / Auth Actions */}
       <div className="border-t border-gray-200 pb-3 pt-4">
-        {user ? (
+        {/* Add loading state check for mobile */}
+        {userLoading ? (
+           <div className="px-4 sm:px-5"><div className="h-10 bg-gray-200 animate-pulse rounded-md"></div></div>
+        ) : user ? (
           <>
             <div className="flex items-center px-4 sm:px-5">
               <div className="flex-shrink-0"><div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white overflow-hidden border border-indigo-700">{user.user_metadata?.avatar_url ? (<Image src={user.user_metadata.avatar_url} alt="User avatar" width={40} height={40} className="w-full h-full object-cover"/>) : (<span className="text-lg font-semibold">{user.email?.charAt(0).toUpperCase() || 'U'}</span>)}</div></div>
@@ -152,7 +110,7 @@ export function Navbar() {
             </div>
             <div className="mt-3 space-y-1 px-2 sm:px-3">
               <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900">Dashboard</Link>
-              <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900">Account Settings</Link>
+              <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900">Account Settings</Link> {/* Corrected link */}
               <button onClick={handleSignOut} className="block w-full rounded-md px-3 py-2 text-left text-base font-medium text-red-600 hover:bg-red-50 hover:text-red-700">Sign Out</button>
             </div>
           </>
@@ -167,7 +125,7 @@ export function Navbar() {
   );
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-md">
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-12">
         <div className="flex justify-between items-center h-16">
           {/* Left side: Logo */}
@@ -207,8 +165,14 @@ export function Navbar() {
              {/* Separator (Optional) */}
              {/* <div className="h-6 w-px bg-gray-200 mx-3"></div> */}
 
-             {/* Auth buttons or user profile - Rendered based on user state */}
-             {user && (
+             {/* Auth buttons or user profile - Render based on user state from useUser */}
+             {/* Add loading state check */}
+             {userLoading ? (
+               <div className="px-3 flex space-x-2">
+                 <div className="h-8 w-16 bg-gray-200 animate-pulse rounded-md"></div> {/* Placeholder */}
+                 <div className="h-8 w-8 bg-gray-200 animate-pulse rounded-full"></div> {/* Placeholder */}
+               </div>
+             ) : user ? (
                <>
                  <div className="px-3"> {/* Added padding */}
                    <Link href="/dashboard">
@@ -218,8 +182,7 @@ export function Navbar() {
                  {/* UserMenu already has px-3 */}
                  <UserMenu />
                </>
-             )}
-             {!user && (
+             ) : ( // Render sign in/up buttons if not loading and no user
                <div className="px-3 space-x-5"> {/* Added padding */}
                  <Link href="/auth">
                    <Button variant="secondary" size="sm" className="text-sm">Sign In</Button>
@@ -229,7 +192,6 @@ export function Navbar() {
                  </Link>
                </div>
              )}
-             {/* Removed the loading placeholder block entirely */}
           </div>
 
           {/* Mobile menu button */}
