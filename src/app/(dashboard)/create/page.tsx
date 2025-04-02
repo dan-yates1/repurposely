@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react"; // Removed unused useEffect, useCallback
 // import Link from "next/link"; // Removed unused import
 import toast, { Toaster } from "react-hot-toast";
 import {
@@ -11,8 +11,8 @@ import { useUser } from "@/hooks/useUser"; // Import useUser
 import { useTokens } from "@/hooks/useTokens";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { OperationType } from "@/lib/token-service";
-import { ContentAnalysisService, ContentQualityMetrics } from "@/lib/content-analysis-service";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"; // Import Breadcrumbs
+// Removed ContentAnalysisService and ContentQualityMetrics imports
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"; 
 import { CreationSteps } from "@/components/ui/creation-steps";
 import { TemplateSelectionStep } from "@/components/ui/template-selection-step";
 import { ContentInputStep } from "@/components/ui/content-input-step";
@@ -46,10 +46,10 @@ export default function Create() {
   const [keywords, setKeywords] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   
-  // Quality analysis
-  const [qualityMetrics, setQualityMetrics] = useState<ContentQualityMetrics | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisTarget, setAnalysisTarget] = useState<"original" | "repurposed">("repurposed");
+  // Removed Quality analysis state
+  // const [qualityMetrics, setQualityMetrics] = useState<ContentQualityMetrics | null>(null);
+  // const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // const [analysisTarget, setAnalysisTarget] = useState<"original" | "repurposed">("repurposed");
   
   // Token management
   const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
@@ -221,7 +221,7 @@ export default function Create() {
     setSelectedTemplate(null);
     setFile(null);
     setCurrentStep(0);
-    setQualityMetrics(null);
+    // Removed qualityMetrics reset
     // Reset image state as well
     setGenerateImage(false);
     setImagePrompt("");
@@ -229,70 +229,7 @@ export default function Create() {
     setImageError(null);
   };
 
-  // Handle content quality analysis
-  const analyzeContentQuality = useCallback(async () => {
-    // Don't analyze if no content to analyze
-    if (!originalContent && !repurposedContent) {
-      toast.error("Please enter or generate content to analyze");
-      return;
-    }
-
-    // Use repurposed content if available, otherwise use original content
-    const contentToAnalyze = analysisTarget === "repurposed" ? repurposedContent : originalContent;
-    
-    // If the selected content type is not available, show an error
-    if (!contentToAnalyze) {
-      toast.error(`No ${analysisTarget} content available to analyze`);
-      return;
-    }
-    
-    // Check if user has enough tokens
-    if (!canPerformOperation("CONTENT_ANALYSIS" as OperationType)) {
-      toast.error("You don't have enough tokens. Please upgrade your subscription.");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    
-    try {
-      // Get the content type based on selected template
-      const contentType = selectedTemplate || 'general';
-      
-      // Call the content analysis service
-      const metrics = await ContentAnalysisService.analyzeContent(contentToAnalyze, contentType);
-      
-      // Update state with the analysis results
-      setQualityMetrics(metrics);
-      
-      // Record token usage
-      await recordTokenTransaction("CONTENT_ANALYSIS" as OperationType);
-      
-      toast.success("Content analyzed successfully!");
-    } catch (error) {
-      console.error("Error analyzing content:", error);
-      toast.error("Failed to analyze content. Please try again.");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [
-    originalContent, 
-    repurposedContent, 
-    analysisTarget, 
-    canPerformOperation, 
-    selectedTemplate, 
-    recordTokenTransaction
-  ]);
-
-  // Effect to re-analyze content when analysis target changes
-  useEffect(() => {
-    // Only re-analyze if we already have metrics and we're not currently analyzing
-    if (qualityMetrics && !isAnalyzing && 
-        ((analysisTarget === "original" && originalContent) || 
-        (analysisTarget === "repurposed" && repurposedContent))) {
-      analyzeContentQuality();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisTarget]);
+  // Removed analyzeContentQuality function and related useEffect hook
 
   // Define the steps for our creation workflow
   const steps = [
@@ -370,12 +307,13 @@ export default function Create() {
             repurposedContent={repurposedContent}
             handleCopyToClipboard={handleCopyToClipboard}
             handleReset={handleReset}
-            qualityMetrics={qualityMetrics}
-            isAnalyzing={isAnalyzing}
-            analyzeContentQuality={analyzeContentQuality}
-            analysisTarget={analysisTarget}
-            setAnalysisTarget={setAnalysisTarget}
-            originalContent={originalContent}
+            // Removed quality analysis props
+            // qualityMetrics={qualityMetrics}
+            // isAnalyzing={isAnalyzing}
+            // analyzeContentQuality={analyzeContentQuality}
+            // analysisTarget={analysisTarget}
+            // setAnalysisTarget={setAnalysisTarget}
+            // originalContent={originalContent} // Not needed by simplified ResultsStep
             selectedTemplate={selectedTemplate}
             // Pass the generated image URL to the results step
             generatedImageUrl={generatedImageUrl}
