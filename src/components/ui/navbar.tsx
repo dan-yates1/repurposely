@@ -116,8 +116,10 @@ export function Navbar() {
           </>
         ) : (
           <div className="space-y-2 px-2 pt-2 sm:px-3">
-            <Link href="/auth" onClick={() => setMobileMenuOpen(false)}><Button variant="secondary" size="md" className="w-full">Login</Button></Link>
-            <Link href="/auth" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" size="md" className="w-full">Sign Up</Button></Link>
+            {/* Add view=signin query param */}
+            <Link href="/auth?view=signin" onClick={() => setMobileMenuOpen(false)}><Button variant="secondary" size="md" className="w-full">Login</Button></Link> 
+            {/* Add view=signup query param */}
+            <Link href="/auth?view=signup" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" size="md" className="w-full">Sign Up</Button></Link> 
           </div>
         )}
       </div>
@@ -184,10 +186,12 @@ export function Navbar() {
                </>
              ) : ( // Render sign in/up buttons if not loading and no user
                <div className="px-3 space-x-5"> {/* Added padding */}
-                 <Link href="/auth">
+                 {/* Add view=signin query param */}
+                 <Link href="/auth?view=signin"> 
                    <Button variant="secondary" size="sm" className="text-sm">Sign In</Button>
                  </Link>
-                 <Link href="/auth">
+                 {/* Add view=signup query param */}
+                 <Link href="/auth?view=signup"> 
                    <Button variant="primary" size="sm" className="text-sm">Sign Up</Button>
                  </Link>
                </div>

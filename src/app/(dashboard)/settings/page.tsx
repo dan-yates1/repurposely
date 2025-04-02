@@ -15,7 +15,8 @@ import {
   ChevronRight,
   LogOut,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle // Import AlertTriangle for Danger Zone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -25,6 +26,8 @@ import { TokenHistoryCard } from "@/components/ui/token-history";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label"; 
 import { Input } from "@/components/ui/input";
+// Import modal/dialog components if you have them, otherwise use basic confirm
+// import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"; 
 
 export default function Settings() {
   usePageTitle("Account Settings");
@@ -43,14 +46,16 @@ export default function Settings() {
     app_metadata?: { provider?: string };
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("account"); // Default to account tab
+  const [activeTab, setActiveTab] = useState("account"); 
   const [signingOut, setSigningOut] = useState(false);
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false); 
-  
   const [isPortalLoading, setIsPortalLoading] = useState(false); 
-  
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // State for delete confirmation
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState(""); // State for delete confirmation input
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false); // Loading state for delete
+
   // Fetch user data
   useEffect(() => {
     const getUserData = async () => {
@@ -166,6 +171,49 @@ export default function Settings() {
     }
   };
 
+  // Handle account deletion confirmation
+  const handleAccountDeletion = async () => {
+     if (deleteConfirmationInput.toLowerCase() !== 'delete') {
+       toast.error('Please type "DELETE" to confirm.');
+       return;
+     }
+     setIsDeletingAccount(true);
+     try {
+       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+       if (sessionError || !sessionData.session) {
+         toast.error("Authentication error. Please log in again.");
+         router.push("/auth");
+         return;
+       }
+       const accessToken = sessionData.session.access_token;
+
+       // Call the backend API to handle deletion
+       const response = await fetch('/api/user/delete', {
+         method: 'POST',
+         headers: { 
+           'Content-Type': 'application/json',
+           'Authorization': `Bearer ${accessToken}` 
+         },
+       });
+
+       const result = await response.json();
+       if (!response.ok) {
+         throw new Error(result.error || 'Failed to delete account');
+       }
+
+       toast.success('Account deleted successfully. Signing out...');
+       await supabase.auth.signOut(); // Sign out locally
+       router.push('/'); // Redirect to home page
+
+     } catch (error) {
+       console.error("Error deleting account:", error);
+       toast.error(error instanceof Error ? error.message : 'Failed to delete account.');
+       setIsDeletingAccount(false); // Re-enable button on error
+     }
+     // setLoading state is handled within the try/catch/finally
+  };
+
+
   // Settings tabs definition
   const tabs = [
     { id: "account", label: "Account", icon: <User className="h-5 w-5" /> },
@@ -177,7 +225,6 @@ export default function Settings() {
 
   // User details for display
   const userEmail = user?.email || "";
-  // Use email prefix as fallback if full_name is not set
   const userName = user?.user_metadata?.full_name || userEmail.split("@")[0] || "User"; 
   const userAvatar = user?.user_metadata?.avatar_url || null;
   const userProvider = user?.app_metadata?.provider || "email";
@@ -218,7 +265,6 @@ export default function Settings() {
                   <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold">{userName.charAt(0).toUpperCase()}</div>
                 )}
                 <div>
-                  {/* Display name from metadata or fallback */}
                   <h2 className="font-medium text-gray-900">{userName}</h2> 
                   <p className="text-sm text-gray-500">{userEmail}</p>
                 </div>
@@ -282,6 +328,25 @@ export default function Settings() {
                        Send Password Reset Email
                     </Button>
                  </div>
+
+                 {/* Delete Account Section */}
+                 <div className="border-t border-red-200 pt-6 mt-6">
+                    <h2 className="text-lg font-medium text-red-700 mb-2 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-600" /> Danger Zone
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Deleting your account is irreversible. All your content history and subscription data will be permanently lost. This action cannot be undone.
+                    </p>
+                    <Button 
+                      variant="danger" // Assuming you have a 'danger' variant or will style it
+                      onClick={() => setShowDeleteModal(true)} 
+                      disabled={isDeletingAccount} 
+                    >
+                       {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                       Delete My Account
+                    </Button>
+                 </div>
+
               </div>
             )}
 
@@ -423,6 +488,43 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Delete Account Confirmation Modal (Basic Example) */}
+      {showDeleteModal && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 shadow-xl max-w-md w-full space-y-4">
+               <h2 className="text-lg font-semibold text-red-700">Confirm Account Deletion</h2>
+               <p className="text-sm text-gray-600">
+                  This action is irreversible. Please type <strong className="text-red-600">DELETE</strong> below to confirm you want to permanently delete your account and all associated data.
+               </p>
+               <div>
+                  <Label htmlFor="deleteConfirmInput" className="sr-only">Type DELETE to confirm</Label>
+                  <Input 
+                     id="deleteConfirmInput"
+                     type="text"
+                     value={deleteConfirmationInput}
+                     onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                     placeholder='Type "DELETE" here'
+                     className="border-red-300 focus:border-red-500 focus:ring-red-500"
+                  />
+               </div>
+               <div className="flex justify-end gap-3">
+                  <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={isDeletingAccount}>
+                     Cancel
+                  </Button>
+                  <Button 
+                     variant="danger" 
+                     onClick={handleAccountDeletion} 
+                     disabled={isDeletingAccount || deleteConfirmationInput.toLowerCase() !== 'delete'}
+                  >
+                     {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                     Confirm Deletion
+                  </Button>
+               </div>
+            </div>
+         </div>
+      )}
+
     </div>
   );
 }
