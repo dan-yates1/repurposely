@@ -19,7 +19,7 @@ function HomeSkeleton() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-12"> {/* Match main navbar padding */}
           <div className="flex justify-between items-center h-16"> {/* Match main navbar height */}
              <Logo /> {/* Render actual Logo */}
-             <Skeleton className="h-9 w-24" /> {/* Keep skeleton for auth button */}
+             {/* <Skeleton className="h-9 w-24" /> Keep skeleton for auth button */}
           </div>
         </div>
       </nav>

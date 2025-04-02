@@ -28,8 +28,9 @@ interface ContentHistoryItem {
   tone: string;
   target_audience: string;
   created_at: string;
-  status?: "published" | "draft"; 
-  metadata?: Record<string, unknown>; 
+  status?: "published" | "draft";
+  metadata?: Record<string, unknown>;
+  generated_image_url?: string | null; // Correct column name
 }
 
 export default function History() {
@@ -225,7 +226,7 @@ export default function History() {
               date={new Date(item.created_at).toLocaleDateString()}
               type={item.output_format || "Text"}
               status={item.status || "draft"}
-              // Default behavior links card to /content/[id]
+              imageUrl={item.generated_image_url} // Pass the correct image URL prop
             />
           ))}
         </div>

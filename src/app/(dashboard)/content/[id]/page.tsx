@@ -11,6 +11,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"; // Import Breadcrumbs
 import React from 'react'; // Import React
+import Image from 'next/image'; // Import Next Image
 
 // Define types for content item
 interface ContentItem {
@@ -24,6 +25,7 @@ interface ContentItem {
   created_at: string;
   status?: "published" | "draft" | "completed"; // Add completed status
   metadata?: Record<string, unknown>;
+  generated_image_url?: string | null; // Add generated image URL field
 }
 
 export default function ContentView() {
@@ -231,6 +233,21 @@ export default function ContentView() {
 
       {/* Content Sections */}
       <div className="space-y-8">
+        {/* Display Generated Image */}
+        {content.generated_image_url && (
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Generated Image</h2>
+            <div className="relative aspect-video w-full max-w-2xl mx-auto overflow-hidden rounded-md border">
+              <Image 
+                src={content.generated_image_url} 
+                alt="Generated AI Image for content" 
+                layout="fill" 
+                objectFit="contain" // Use 'contain' to see the whole image
+              />
+            </div>
+          </div>
+        )}
+
         {/* Original Content */}
         {content.original_content && (
           <div className="bg-white p-6 text-gray-700 rounded-lg shadow-sm">

@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { Twitter, Linkedin, FileText, Instagram, Youtube, Facebook } from 'lucide-react';
+import Image from 'next/image'; // Import Next Image
 
 interface ContentPreviewProps {
   content: string;
   platform: string;
+  imageUrl?: string | null; // Add imageUrl prop
 }
 
-// Simple avatar component that doesn't require external images
+// Simple avatar component (no changes needed)
 const Avatar = ({ initials = "U", size = 40 }: { initials?: string; size?: number }) => {
   const colors = [
     "bg-blue-500", "bg-green-500", "bg-yellow-500", 
@@ -29,8 +31,8 @@ const Avatar = ({ initials = "U", size = 40 }: { initials?: string; size?: numbe
   );
 };
 
-export function ContentPreview({ content, platform }: ContentPreviewProps) {
-  // Format content based on platform
+export function ContentPreview({ content, platform, imageUrl }: ContentPreviewProps) { // Add imageUrl to props
+  // Format content based on platform (no changes needed)
   const formatContent = (content: string, platform: string) => {
     switch (platform) {
       case 'twitter':
@@ -172,10 +174,20 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
                 <div className="text-gray-800 font-semibold">your_handle</div>
               </div>
             </div>
-            <div className="bg-gray-100 aspect-square flex items-center justify-center">
-              <div className="text-gray-400 text-sm">
-                [Image would appear here]
-              </div>
+            {/* Display actual image if URL exists, otherwise placeholder */}
+            <div className="bg-gray-100 aspect-square flex items-center justify-center relative overflow-hidden">
+              {imageUrl ? (
+                <Image 
+                  src={imageUrl} 
+                  alt="Generated content image" 
+                  layout="fill" 
+                  objectFit="cover" 
+                />
+              ) : (
+                <div className="text-gray-400 text-sm">
+                  [No Image Generated]
+                </div>
+              )}
             </div>
             <div className="p-3">
               <div className="flex items-center space-x-4 mb-2">
@@ -197,8 +209,19 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
           <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md text-gray-700 overflow-hidden">
             <div className="p-6">
               <h1 className="text-2xl font-bold mb-4">
-                {content.split('\n')[0].replace(/^#\s*/, '')}
+                {content.split('\n')[0].replace(/^#\s*/, '') || "Blog Post Title"} 
               </h1>
+              {/* Add image to blog preview if available */}
+              {imageUrl && (
+                <div className="relative aspect-video w-full mb-4 overflow-hidden rounded-md border">
+                  <Image 
+                    src={imageUrl} 
+                    alt="Blog post image" 
+                    layout="fill" 
+                    objectFit="cover" 
+                  />
+                </div>
+              )}
               <div className="prose prose-sm max-w-none">
                 <div className="whitespace-pre-line">{content}</div>
               </div>
@@ -215,10 +238,19 @@ export function ContentPreview({ content, platform }: ContentPreviewProps) {
   );
 }
 
-export function PlatformPreviewTabs({ content, selectedTemplate }: { content: string, selectedTemplate: string | null }) {
+// Update PlatformPreviewTabs props to accept imageUrl
+export function PlatformPreviewTabs({ 
+  content, 
+  selectedTemplate, 
+  imageUrl 
+}: { 
+  content: string; 
+  selectedTemplate: string | null; 
+  imageUrl?: string | null; // Add imageUrl prop
+}) {
   const [activeTab, setActiveTab] = useState(selectedTemplate || 'blog');
   
-  const getPlatformIcon = (platform: string) => {
+  const getPlatformIcon = (platform: string) => { // No changes needed here
     switch (platform) {
       case 'twitter':
         return <Twitter className="h-4 w-4" />;
@@ -261,7 +293,8 @@ export function PlatformPreviewTabs({ content, selectedTemplate }: { content: st
       <div className="p-4 bg-gray-50 rounded-lg">
         <ContentPreview 
           content={content} 
-          platform={activeTab} 
+          platform={activeTab}
+          imageUrl={imageUrl} // Pass imageUrl down
         />
       </div>
     </div>

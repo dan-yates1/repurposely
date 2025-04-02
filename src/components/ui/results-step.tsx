@@ -6,7 +6,9 @@ import toast from 'react-hot-toast';
 import { ContentQualityCard } from '@/components/ui/content-quality-card';
 import { ContentQualityMetrics } from '@/lib/content-analysis-service';
 import { useTokens } from '@/hooks/useTokens';
-import { PlatformPreviewTabs } from '@/components/ui/content-preview';
+import { PlatformPreviewTabs } from '@/components/ui/content-preview'; // Assuming this handles preview rendering
+import Image from 'next/image'; // For displaying the generated image
+import { AlertTriangle } from 'lucide-react'; // For error display
 
 interface ResultsStepProps {
   repurposedContent: string;
@@ -19,6 +21,8 @@ interface ResultsStepProps {
   setAnalysisTarget: (target: "original" | "repurposed") => void;
   originalContent: string;
   selectedTemplate?: string | null;
+  generatedImageUrl?: string | null; // Add prop for image URL
+  imageError?: string | null; // Add prop for image error
 }
 
 export function ResultsStep({
@@ -31,7 +35,9 @@ export function ResultsStep({
   analysisTarget,
   setAnalysisTarget,
   originalContent,
-  selectedTemplate
+  selectedTemplate,
+  generatedImageUrl, // Destructure new props
+  imageError,       // Destructure new props
 }: ResultsStepProps) {
   const { tokenUsage } = useTokens();
   const [showAnalysis, setShowAnalysis] = useState(Boolean(qualityMetrics));
@@ -66,12 +72,43 @@ export function ResultsStep({
         </div>
 
         {showPreview && (
-          <PlatformPreviewTabs 
-            content={repurposedContent} 
-            selectedTemplate={selectedTemplate || 'blog'} 
+          <PlatformPreviewTabs
+            content={repurposedContent}
+            selectedTemplate={selectedTemplate || 'blog'}
+            // Pass image URL to preview component if it accepts it
+            imageUrl={generatedImageUrl || undefined} 
           />
         )}
       </div>
+
+      {/* Display Generated Image (if successful) */}
+      {generatedImageUrl && !imageError && (
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            Generated Image
+          </h2>
+          <div className="relative aspect-video w-full max-w-md mx-auto overflow-hidden rounded-md border">
+             <Image 
+               src={generatedImageUrl} 
+               alt="Generated AI Image" 
+               layout="fill" 
+               objectFit="contain" // Or 'cover' depending on desired look
+             />
+          </div>
+        </div>
+      )}
+      
+      {/* Display Image Error (if exists) */}
+      {imageError && (
+         <div className="bg-red-50 p-4 rounded-lg border border-red-200 flex items-start space-x-3">
+           <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+           <div>
+             <p className="text-sm font-medium text-red-800">Image Generation Failed</p>
+             <p className="text-sm text-red-700">{imageError}</p>
+           </div>
+         </div>
+       )}
+
 
       {/* Generated Content */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">

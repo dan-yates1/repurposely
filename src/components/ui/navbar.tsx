@@ -101,12 +101,12 @@ export function Navbar() {
     <div className="relative px-3" ref={userMenuRef}> {/* Added padding */}
       <button
         onClick={() => setUserMenuOpen(!userMenuOpen)}
-        className="flex items-center focus:outline-none"
+        className="flex items-center cursor-pointer"
         aria-expanded={userMenuOpen}
         aria-haspopup="true"
         aria-controls="user-menu-items"
       >
-        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white overflow-hidden border-2 border-transparent hover:border-indigo-300 transition-colors">
+        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white overflow-hidden border-2 border-transparent hover:bg-indigo-700">
           {user?.user_metadata?.avatar_url ? (
             <Image src={user.user_metadata.avatar_url} alt="User avatar" width={32} height={32} className="w-full h-full object-cover"/>
           ) : (
@@ -118,7 +118,7 @@ export function Navbar() {
         <div id="user-menu-items" className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 origin-top-right animate-scale-in" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
           <div className="px-4 py-2 border-b border-gray-100"><p className="text-sm font-medium text-gray-900 truncate">{user?.email}</p></div>
           <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Dashboard</Link>
-          <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Account Settings</Link>
+          <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Account Settings</Link>
           <button onClick={handleSignOut} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100" role="menuitem">Sign Out</button>
         </div>
       )}
@@ -158,6 +158,7 @@ export function Navbar() {
           </>
         ) : (
           <div className="space-y-2 px-2 pt-2 sm:px-3">
+            <Link href="/auth" onClick={() => setMobileMenuOpen(false)}><Button variant="secondary" size="md" className="w-full">Login</Button></Link>
             <Link href="/auth" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" size="md" className="w-full">Sign Up</Button></Link>
           </div>
         )}
@@ -219,7 +220,10 @@ export function Navbar() {
                </>
              )}
              {!user && (
-               <div className="px-3"> {/* Added padding */}
+               <div className="px-3 space-x-5"> {/* Added padding */}
+                 <Link href="/auth">
+                   <Button variant="secondary" size="sm" className="text-sm">Sign In</Button>
+                 </Link>
                  <Link href="/auth">
                    <Button variant="primary" size="sm" className="text-sm">Sign Up</Button>
                  </Link>

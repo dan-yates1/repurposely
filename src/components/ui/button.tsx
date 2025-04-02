@@ -17,7 +17,7 @@ export function Button({
   onClick,
   disabled = false,
 }: ButtonProps) {
-  const baseStyles = 'rounded-lg font-medium transition-colors';
+  const baseStyles = 'cursor-pointer rounded-lg font-medium transition-colors';
   
   const variantStyles = {
     primary: 'bg-indigo-600 text-white hover:bg-indigo-700',

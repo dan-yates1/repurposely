@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import { FileText, Twitter, Linkedin, BookOpen, Mail, Video } from 'lucide-react';
 import React from 'react'; 
 
@@ -10,8 +11,8 @@ interface ContentCardProps {
   timeAgo?: string;
   type: string;
   status?: 'published' | 'draft';
+  imageUrl?: string | null; // Add optional imageUrl prop
   onClick?: () => void;
-  // Removed onEdit/onDelete props
 }
 
 export function ContentCard({ 
@@ -22,6 +23,7 @@ export function ContentCard({
   timeAgo, 
   type, 
   status,
+  imageUrl, // Destructure imageUrl
   onClick 
 }: ContentCardProps) {
   const getIcon = () => {
@@ -43,14 +45,28 @@ export function ContentCard({
 
   const cardContent = (
     <>
-      <div className="mb-4">
-        {getIcon()}
-      </div>
+      {/* Conditionally render image thumbnail */}
+      {imageUrl && (
+        <div className="relative w-full h-32 mb-4 rounded overflow-hidden">
+          <Image 
+            src={imageUrl} 
+            alt={title || 'Content image'} 
+            fill 
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover" 
+          />
+        </div>
+      )}
       <div className="flex justify-between items-center mb-2">
-        {timeAgo && <div className="text-sm text-gray-500">{timeAgo}</div>}
-        {date && <div className="text-sm text-gray-500">{date}</div>}
+        {/* Icon moved below image if image exists */}
+        {!imageUrl && <div className="mb-2">{getIcon()}</div>} 
+        <div className="flex items-center gap-2">
+          {imageUrl && getIcon()} {/* Show icon next to date/status if image exists */}
+          {timeAgo && <div className="text-sm text-gray-500">{timeAgo}</div>}
+          {date && <div className="text-sm text-gray-500">{date}</div>}
+        </div>
         {status && (
-          <span className={`text-xs px-2 py-1 rounded-full ${
+          <span className={`text-xs px-2 py-0.5 rounded-full ${ // Adjusted padding
             status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
           }`}>
             {status.charAt(0).toUpperCase() + status.slice(1)}

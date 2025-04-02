@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { Loader2, Image as ImageIcon, Download, Sparkles, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
-import { ImageGenerationService, ImageSize, ImageStyle, GeneratedImage } from '@/lib/image-generation-service';
+// Remove direct service import, reuse types
+import { ImageSize, ImageStyle, GeneratedImage } from '@/lib/image-generation-service'; 
 import { useTokens } from '@/hooks/useTokens';
+import { useUser } from '@/hooks/useUser'; // Import useUser hook
 
 interface ImageGeneratorProps {
   contentId?: string;
@@ -16,9 +18,11 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<GeneratedImage | null>(null);
-  const [imageSize, setImageSize] = useState<ImageSize>('512x512');
-  const [imageStyle, setImageStyle] = useState<ImageStyle>('natural');
+  // Update default size to a valid DALL-E 3 option
+  const [imageSize, setImageSize] = useState<ImageSize>('1024x1024'); 
+  const [imageStyle, setImageStyle] = useState<ImageStyle>('natural'); // Default style is fine
   const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
+  const { user } = useUser(); // Get user info
   
   const handleGenerateImage = async () => {
     if (!prompt.trim()) {
@@ -33,29 +37,45 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
     }
     
     setIsGenerating(true);
-    
+    setGeneratedImage(null); // Clear previous image while generating
+
     try {
-      const generatedImg = await ImageGenerationService.generateImage({
-        prompt: prompt,
-        size: imageSize,
-        style: imageStyle,
-        contentId
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          size: imageSize,
+          style: imageStyle,
+          userId: user?.id, // Pass the user ID
+          contentId: contentId,
+        }),
       });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate image');
+      }
       
-      setGeneratedImage(generatedImg);
+      // Assuming the API returns the GeneratedImage structure
+      setGeneratedImage(result as GeneratedImage); 
       
-      // Record token usage
+      // Record token usage *after* successful generation
       await recordTokenTransaction('IMAGE_GENERATION', contentId);
       
       // Call the callback if provided
-      if (onImageGenerated) {
-        onImageGenerated(generatedImg.url);
+      if (onImageGenerated && result.url) {
+        onImageGenerated(result.url);
       }
       
       toast.success('Image generated successfully!');
+      
     } catch (error) {
       console.error('Error generating image:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to generate image');
+      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsGenerating(false);
     }
@@ -113,11 +133,10 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             disabled={isGenerating}
           >
-            <option value="256x256">Small (256x256)</option>
-            <option value="512x512">Medium (512x512)</option>
-            <option value="1024x1024">Large (1024x1024)</option>
-            <option value="1024x1792">Portrait (1024x1792)</option>
-            <option value="1792x1024">Landscape (1792x1024)</option>
+            {/* DALL-E 3 Sizes */}
+            <option value="1024x1024">Standard Square (1024x1024)</option>
+            <option value="1024x1792">Tall Portrait (1024x1792)</option>
+            <option value="1792x1024">Wide Landscape (1792x1024)</option>
           </select>
         </div>
         
@@ -132,11 +151,9 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none text-gray-700 focus:ring-2 focus:ring-indigo-500"
             disabled={isGenerating}
           >
+            {/* DALL-E 3 Styles */}
             <option value="natural">Natural</option>
             <option value="vivid">Vivid</option>
-            <option value="abstract">Abstract</option>
-            <option value="artistic">Artistic</option>
-            <option value="professional">Professional</option>
           </select>
         </div>
       </div>
@@ -193,16 +210,20 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             ) : (
               <Image 
                 src={generatedImage.url} 
-                alt={generatedImage.prompt}
-                width={imageSize.split('x')[0] === '256' ? 256 : imageSize.split('x')[0] === '512' ? 512 : 1024}
-                height={imageSize.split('x')[1] === '256' ? 256 : imageSize.split('x')[1] === '512' ? 512 : 1024}
-                className="w-full h-auto object-cover rounded-lg"
+                alt={generatedImage.revised_prompt || generatedImage.prompt} // Use revised prompt for alt if available
+                // Use fixed dimensions based on DALL-E 3 sizes for layout consistency
+                width={1024} 
+                height={1024} // Default to square aspect ratio for layout
+                className="w-full h-auto object-contain rounded-lg" // Use object-contain to see full image
               />
             )}
           </div>
           
-          <p className="mt-2 text-xs text-gray-500 truncate">
-            {generatedImage.prompt}
+          <p className="mt-2 text-xs text-gray-500">
+            Prompt: {generatedImage.prompt}
+            {generatedImage.revised_prompt && (
+              <span className="block text-gray-400 italic">Revised: {generatedImage.revised_prompt}</span>
+            )}
           </p>
         </div>
       )}

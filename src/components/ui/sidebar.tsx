@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react'; // Removed unused ImageIcon
 import { supabase } from '@/lib/supabase';
 import { useTokens } from '@/hooks/useTokens';
 import toast from 'react-hot-toast';
@@ -173,6 +173,7 @@ export function Sidebar() {
             <Clock size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
             {!isCollapsed && <span className="text-sm font-medium">History</span>}
           </Link>
+          {/* Removed Image History Link */}
           <Link href="/templates" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/templates')}`}>
             <PenSquare size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
             {!isCollapsed && <span className="text-sm font-medium">Templates</span>}

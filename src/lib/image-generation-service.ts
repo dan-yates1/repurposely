@@ -1,109 +1,166 @@
 // Image Generation Service
-// This service handles the generation of AI images based on text prompts
+// This service handles the generation of AI images based on text prompts using OpenAI DALL-E
 
-import { supabase } from './supabase';
+// Removed unused 'supabase' import
+import OpenAI, { APIError } from 'openai';
+import { createAdminClient } from './supabase-admin'; // Import admin client for uploading
+import { v4 as uuidv4 } from 'uuid'; // For generating unique filenames
 
-export type ImageSize = '256x256' | '512x512' | '1024x1024' | '1024x1792' | '1792x1024';
-export type ImageStyle = 'natural' | 'vivid' | 'abstract' | 'artistic' | 'professional';
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // Ensure OPENAI_API_KEY is in your .env file
+});
+
+// DALL-E 3 supported sizes
+export type ImageSize = '1024x1024' | '1024x1792' | '1792x1024'; 
+// Note: DALL-E 2 sizes ('256x256', '512x512') are removed as we target DALL-E 3
+export type ImageStyle = 'natural' | 'vivid'; // DALL-E 3 API supports only 'natural' or 'vivid'
 
 export interface ImageGenerationOptions {
   prompt: string;
   size?: ImageSize;
   style?: ImageStyle;
-  userId?: string;
-  contentId?: string;
+  userId: string; // Make userId mandatory for associating uploads
 }
 
-export interface GeneratedImage {
-  id: string;
-  url: string;
-  prompt: string;
+// Simplified return type focusing on data needed for upload
+export interface GeneratedImageData {
+  b64_json: string;
+  revised_prompt?: string;
+  prompt: string; // Keep original prompt for context
   size: ImageSize;
   style: ImageStyle;
-  created_at: string;
 }
 
 export class ImageGenerationService {
-  // In a real implementation, this would call an actual AI image generation API
-  // For now, we'll use a mock implementation that simulates the process
-  static async generateImage(options: ImageGenerationOptions): Promise<GeneratedImage> {
-    const { prompt, size = '512x512', style = 'natural', userId, contentId } = options;
-    
+
+  // Returns base64 image data instead of URL
+  static async generateImageData(options: ImageGenerationOptions): Promise<GeneratedImageData> {
+    // Set default size to a valid DALL-E 3 size for cost-effectiveness
+    // Removed unused 'userId' from destructuring here
+    const { prompt, size = '1024x1024', style = 'natural' } = options;
+
     // Validate the prompt
     if (!prompt || prompt.trim().length < 3) {
-      throw new Error('Please provide a more detailed image prompt (at least 3 characters)');
+      throw new Error('Please provide a more detailed image prompt (at least 3 characters).');
     }
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Generate a random ID for the image
-    const imageId = Math.random().toString(36).substring(2, 15);
-    
-    // Create a placeholder image URL based on size and the prompt
-    // Using a placeholder service that generates images based on parameters
-    // In a real app, this would be the URL returned from the AI image generation API
-    
-    // Create a hash from the prompt to make somewhat deterministic images
-    const promptHash = prompt.split('').reduce((acc, char) => {
-      return acc + char.charCodeAt(0);
-    }, 0);
-    
-    const placeholderImage = `https://picsum.photos/seed/${promptHash}/${size.split('x')[0]}/${size.split('x')[1]}`;
-    
-    // In a real implementation, save the image metadata to the database
-    if (userId) {
-      try {
-        await supabase.from('generated_images').insert({
-          user_id: userId,
-          image_url: placeholderImage,
-          prompt: prompt,
-          size: size,
-          style: style,
-          content_id: contentId || null
-        });
-      } catch (error) {
-        console.error('Error saving image metadata:', error);
-      }
+
+    if (!openai.apiKey) {
+      throw new Error('OpenAI API key is not configured. Please set OPENAI_API_KEY environment variable.');
     }
-    
-    return {
-      id: imageId,
-      url: placeholderImage,
-      prompt,
-      size,
-      style,
-      created_at: new Date().toISOString()
-    };
-  }
-  
-  // Get image generation history for a user
-  static async getImageHistory(userId: string, limit = 10): Promise<GeneratedImage[]> {
-    if (!userId) return [];
-    
+
     try {
-      const { data, error } = await supabase
-        .from('generated_images')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-        
-      if (error) {
-        throw error;
+      console.log(`Generating image with prompt: "${prompt}", size: ${size}, style: ${style}`);
+      
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1, // Generate one image
+        size: size,
+        quality: "standard", // Use standard quality for lower cost
+        style: style, // 'natural' or 'vivid'
+        response_format: "b64_json", // Request base64 encoded image data
+      });
+
+      const b64Json = response.data[0]?.b64_json;
+      const revisedPrompt = response.data[0]?.revised_prompt;
+
+      if (!b64Json) {
+        throw new Error('Image generation failed, no base64 data returned.');
       }
       
-      return data.map(item => ({
-        id: item.id,
-        url: item.image_url,
-        prompt: item.prompt,
-        size: item.size,
-        style: item.style,
-        created_at: item.created_at
-      }));
+      console.log(`Image generated successfully as base64 data.`);
+      if (revisedPrompt) {
+        console.log(`Prompt revised by DALL-E: "${revisedPrompt}"`);
+      }
+
+      // Return the raw data needed for upload and context
+      return {
+        b64_json: b64Json,
+        revised_prompt: revisedPrompt,
+        prompt: prompt, // Return original prompt
+        size,
+        style,
+      };
+
+    } catch (error: unknown) {
+      console.error('Error calling OpenAI Image API:', error); // Keep detailed logging
+      let errorMessage = 'An unknown error occurred during image generation.';
+      
+      if (error instanceof APIError) {
+        // Handle OpenAI specific API errors
+        errorMessage = `OpenAI API Error (${error.status}): ${error.message}`;
+        console.error('OpenAI API Error Status:', error.status);
+        // error.error might contain more detailed structured error info from OpenAI
+        console.error('OpenAI API Error Details:', error.error); 
+      } else if (error instanceof Error) {
+        // Handle generic JavaScript errors
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+         // Handle plain string errors (less common)
+         errorMessage = error;
+      }
+      
+      throw new Error(`Failed to generate image: ${errorMessage}`);
+    }
+  }
+
+  // This function will likely be deprecated in Step 3
+  // static async getImageHistory(userId: string, limit = 10): Promise<GeneratedImage[]> {
+  //   // ... existing implementation ...
+  // }
+
+  // Helper function to upload image data to Supabase Storage
+  static async uploadImageToSupabase(userId: string, b64Json: string): Promise<string> {
+    if (!userId || !b64Json) {
+      throw new Error('User ID and base64 image data are required for upload.');
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const bucketName = 'generated-images'; // As confirmed
+    const fileName = `${uuidv4()}.png`; // Generate unique filename
+    const filePath = `public/${userId}/${fileName}`; // Organize by user ID in a public folder
+
+    try {
+      // Decode base64 string to Buffer
+      const imageBuffer = Buffer.from(b64Json, 'base64');
+
+      console.log(`Uploading image to Supabase Storage: ${bucketName}/${filePath}`);
+
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from(bucketName)
+        .upload(filePath, imageBuffer, {
+          contentType: 'image/png',
+          cacheControl: '3600', // Cache for 1 hour
+          upsert: false, // Don't overwrite existing files (should be unique anyway)
+        });
+
+      if (uploadError) {
+        console.error('Supabase Storage upload error:', uploadError);
+        throw new Error(`Failed to upload image to Supabase Storage: ${uploadError.message}`);
+      }
+
+      if (!uploadData?.path) {
+         throw new Error('Supabase Storage upload succeeded but did not return a path.');
+      }
+
+      // Get the public URL for the uploaded file
+      const { data: urlData } = supabaseAdmin.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+
+      if (!urlData?.publicUrl) {
+        console.error('Could not get public URL for uploaded file:', filePath);
+        throw new Error('Failed to get public URL for uploaded image.');
+      }
+
+      console.log(`Image uploaded successfully. Public URL: ${urlData.publicUrl}`);
+      return urlData.publicUrl;
+
     } catch (error) {
-      console.error('Error fetching image history:', error);
-      return [];
+      console.error('Error during image upload process:', error);
+      // Re-throw the error to be handled by the calling function (/api/repurpose)
+      throw error; 
     }
   }
 }

@@ -20,6 +20,7 @@ import { OutputSettingsStep } from "@/components/ui/output-settings-step";
 import { ImageGeneratorStep } from "@/components/ui/image-generator-step";
 import { ResultsStep } from "@/components/ui/results-step";
 
+
 export default function Create() {
   // Page title
   usePageTitle("Create New Content");
@@ -53,6 +54,12 @@ export default function Create() {
   // Token management
   const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
   const { user } = useUser(); // Get user object
+
+  // Image Generation State
+  const [generateImage, setGenerateImage] = useState(false); // Flag to control image generation
+  const [imagePrompt, setImagePrompt] = useState(""); // User's custom prompt
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null); // Stores the URL *after* API call
+  const [imageError, setImageError] = useState<string | null>(null); // Stores any image error from API
 
   // Handle template selection
   const handleTemplateSelect = (template: string) => {
@@ -128,9 +135,26 @@ export default function Create() {
 
     setLoading(true);
     setRepurposedContent(""); // Clear previous results
-    
+    setGeneratedImageUrl(null); // Clear previous image URL
+    setImageError(null); // Clear previous image error
+
     // Get user ID from useUser hook
-    const userId = user?.id; 
+    const userId = user?.id;
+
+    // Prepare data for API call
+    const requestBody = {
+      originalContent,
+      outputFormat: selectedTemplate, // Use template ID as format
+      tone,
+      contentLength,
+      targetAudience,
+      userId: userId || null, // Send userId if available
+      generateImage: generateImage && !!userId, // Only generate if flag is true AND user is logged in
+      imagePrompt: generateImage ? imagePrompt : undefined, // Send prompt only if generating
+      // Add imageSize and imageStyle if needed later
+    };
+
+    console.log("Sending request to /api/repurpose:", requestBody);
 
     try {
       // Call the actual repurpose API endpoint
@@ -139,38 +163,46 @@ export default function Create() {
         headers: {
           "Content-Type": "application/json",
           // Add auth token if your API requires it (recommended)
-          // Authorization: `Bearer ${accessToken}` 
+          // Authorization: `Bearer ${accessToken}`
         },
-        body: JSON.stringify({
-          originalContent,
-          outputFormat: selectedTemplate, // Use template ID as format
-          tone,
-          contentLength,
-          targetAudience,
-          userId: userId || null, // Send userId if available
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
+      console.log("Received response from /api/repurpose:", data);
 
       if (!response.ok) {
-        throw new Error(data.error || "API request failed");
+        // Handle API errors (content or general)
+        throw new Error(data.error || `API request failed with status ${response.status}`);
       }
 
+      // Update state with results
       setRepurposedContent(data.repurposedContent);
+      setGeneratedImageUrl(data.generatedImageUrl || null); // Update with URL from API response
+      setImageError(data.imageError || null); // Update with error from API response
 
-      // Record token transaction only if API call was successful
+      // Record token transaction only if content generation part was successful
+      // Note: Token deduction for image generation should ideally happen within the API route
+      // or be triggered based on the response. For now, just record text repurpose.
       if (userId) { // Only record if user is logged in
          await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
+         // TODO: Consider adding separate token transaction for image generation based on response
       }
 
-      toast.success("Content repurposed successfully");
-      
+      // Show appropriate success/error messages
+      toast.success("Content generated successfully!");
+      if (data.imageError) {
+        toast.error(`Image generation failed: ${data.imageError}`, { duration: 5000 });
+      } else if (data.generatedImageUrl) {
+        toast.success("Image generated successfully!");
+      }
+
       // Automatically move to the final step
       setCurrentStep(4);
     } catch (error) {
-      console.error("Error repurposing content:", error);
-      toast.error("Failed to repurpose content. Please try again.");
+      console.error("Error during content generation process:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      toast.error(`Failed to generate content: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -190,6 +222,11 @@ export default function Create() {
     setFile(null);
     setCurrentStep(0);
     setQualityMetrics(null);
+    // Reset image state as well
+    setGenerateImage(false);
+    setImagePrompt("");
+    setGeneratedImageUrl(null);
+    setImageError(null);
   };
 
   // Handle content quality analysis
@@ -304,9 +341,18 @@ export default function Create() {
     },
     {
       id: "images",
-      title: "Add Images",
+      title: "Add Image (Optional)", // Update title
       content: (
-        <ImageGeneratorStep contentId={undefined} />
+        <ImageGeneratorStep
+          generateImage={generateImage}
+          setGenerateImage={setGenerateImage}
+          imagePrompt={imagePrompt}
+          setImagePrompt={setImagePrompt}
+          // Pass the final URL from state to display if generation was successful
+          currentImageUrl={generatedImageUrl}
+          // Pass any error message
+          imageError={imageError}
+        />
       ),
     },
     {
@@ -331,6 +377,9 @@ export default function Create() {
             setAnalysisTarget={setAnalysisTarget}
             originalContent={originalContent}
             selectedTemplate={selectedTemplate}
+            // Pass the generated image URL to the results step
+            generatedImageUrl={generatedImageUrl}
+            imageError={imageError} // Pass image error as well
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-12">
@@ -372,7 +421,8 @@ export default function Create() {
           onComplete={handleSubmit}
           // Pass state needed for validation
           selectedTemplate={selectedTemplate} 
-          // originalContent={originalContent} // Removed unused prop
+          // Pass generated image URL to potentially show in final step or save
+          // generatedImageUrl={generatedImageUrl} // We'll add this to handleSubmit instead
         />
       </div>
     </div>
