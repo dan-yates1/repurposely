@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react'; // Removed unused ImageIcon
+// Removed Menu, X from imports
+import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'; 
 import { supabase } from '@/lib/supabase';
 import { useTokens } from '@/hooks/useTokens';
 import toast from 'react-hot-toast';
@@ -17,10 +18,10 @@ export function Sidebar() {
   const [userPlan, setUserPlan] = useState<string>('Free');
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  // Removed isMobileOpen state
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { 
-    tokenUsage, 
+  const {
+    tokenUsage,
     loading: tokensLoading, 
     error: tokensError 
   } = useTokens();
@@ -103,22 +104,9 @@ export function Sidebar() {
     }
   };
 
-  // Function to toggle mobile sidebar
-  const toggleMobileSidebar = () => {
-    setIsMobileOpen(!isMobileOpen);
-  };
-
-  // Close mobile sidebar if screen size changes to desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768 && isMobileOpen) { // 768px is typically md breakpoint in Tailwind
-        setIsMobileOpen(false);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isMobileOpen]);
+  // Removed toggleMobileSidebar function
+  
+  // Removed mobile resize useEffect hook
 
   const handleSignOut = async () => {
     try {
@@ -136,17 +124,19 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile sidebar toggle button - visible only on mobile */}
+      {/* Mobile sidebar toggle button - REMOVED */}
+      {/* 
       <button 
         onClick={toggleMobileSidebar}
         className="md:hidden fixed top-4 left-4 z-30 bg-white p-2 rounded-md shadow-md"
         aria-label="Toggle sidebar"
       >
         {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      </button> 
+      */}
 
-      {/* Sidebar container */}
-      <div className={`fixed md:relative h-full ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex flex-col py-4 transition-all duration-300 ease-in-out z-20 ${isMobileOpen ? 'left-0' : '-left-full md:left-0'}`}>
+      {/* Sidebar container - Adjusted classes to always hide on mobile */}
+      <div className={`hidden md:flex md:relative h-full ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex-col py-4 transition-all duration-300 ease-in-out z-20`}>
         {/* Toggle Button - visible only on desktop */}
         <button 
           onClick={toggleSidebar}

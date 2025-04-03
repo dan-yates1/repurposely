@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"; 
+// Removed unused Breadcrumbs import
 import { useTokens } from "@/hooks/useTokens";
 import { TokenHistoryCard } from "@/components/ui/token-history";
 import { Badge } from "@/components/ui/badge";
@@ -299,9 +299,14 @@ export default function Settings() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
 
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]} />
+      {/* Breadcrumbs REMOVED */}
+      {/* <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]} /> */}
       
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h1>
+      {/* Added Title/Description Block */}
+      <div className="mb-8"> {/* Added mb-8 for spacing below */}
+        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <p className="text-gray-500 mt-1">Manage your account, subscription, and preferences.</p>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 text-indigo-600 animate-spin" /></div>

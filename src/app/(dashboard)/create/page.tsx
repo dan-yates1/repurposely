@@ -1,256 +1,275 @@
 "use client";
 
-import { useState, useEffect } from "react"; // Added useEffect
-import { useSearchParams } from 'next/navigation'; // Added useSearchParams
+import { useState, useEffect } from "react";
+import { useSearchParams } from 'next/navigation';
 import toast, { Toaster } from "react-hot-toast";
 import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { useUser } from "@/hooks/useUser"; // Import useUser
+import { useUser } from "@/hooks/useUser";
 import { useTokens } from "@/hooks/useTokens";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { OperationType } from "@/lib/token-service";
-import { TEMPLATES } from "@/lib/templates"; // Added TEMPLATES import
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"; 
+import { TEMPLATES, Template } from "@/lib/templates"; // Removed CATEGORIES import
+import { supabase } from "@/lib/supabase"; // Added supabase import
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { CreationSteps } from "@/components/ui/creation-steps";
 import { TemplateSelectionStep } from "@/components/ui/template-selection-step";
 import { ContentInputStep } from "@/components/ui/content-input-step";
 import { OutputSettingsStep } from "@/components/ui/output-settings-step";
 import { ImageGeneratorStep } from "@/components/ui/image-generator-step";
 import { ResultsStep } from "@/components/ui/results-step";
-
+import React from 'react'; // Import React
 
 export default function Create() {
-  // Page title
   usePageTitle("Create New Content");
-  const searchParams = useSearchParams(); // Initialize searchParams
-  
+  const searchParams = useSearchParams();
+  const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
+  const { user } = useUser();
+
   // Step management
   const [currentStep, setCurrentStep] = useState(0);
-  
+
   // Content state
   const [originalContent, setOriginalContent] = useState("");
   const [repurposedContent, setRepurposedContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  
+
   // File handling
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
+
   // Output settings
   const [tone, setTone] = useState("professional");
   const [contentLength, setContentLength] = useState("medium");
   const [includeKeywords, setIncludeKeywords] = useState(false);
   const [keywords, setKeywords] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
-  
-  // Removed Quality analysis state
-  // const [qualityMetrics, setQualityMetrics] = useState<ContentQualityMetrics | null>(null);
-  // const [isAnalyzing, setIsAnalyzing] = useState(false);
-  // const [analysisTarget, setAnalysisTarget] = useState<"original" | "repurposed">("repurposed");
-  
-  // Token management
-  const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
-  const { user } = useUser(); 
+
+  // Image Generation State
+  const [generateImage, setGenerateImage] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  // *** State Lifted from Templates Page ***
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null); // Keep this for selection tracking
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>(TEMPLATES); // Initialize with all templates
+  const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
+  // Removed unused showPremium state
+  const [userPlan, setUserPlan] = useState<string>("Free"); // Needed for premium check
+  // *** End Lifted State ***
+
+  // Effect to get user plan (needed for premium template check)
+  useEffect(() => {
+    const getUserPlan = async () => {
+      if (user?.id) {
+        try {
+          const { data: subscriptionData } = await supabase
+            .from("user_subscriptions")
+            .select("subscription_tier")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          const tier = subscriptionData?.subscription_tier || "FREE";
+          setUserPlan(tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase());
+        } catch (error) {
+          console.error("Error fetching user plan:", error);
+        }
+      }
+    };
+    getUserPlan();
+    loadCustomTemplates(); // Load custom templates on mount
+  }, [user]);
 
   // Effect to handle pre-selection from query parameter
   useEffect(() => {
     const templateIdFromQuery = searchParams.get('template');
     if (templateIdFromQuery) {
-      // Check if the template ID exists in our TEMPLATES array
-      const templateExists = TEMPLATES.some(t => t.id === templateIdFromQuery);
+      const allTemplates = [...TEMPLATES, ...customTemplates];
+      const templateExists = allTemplates.some(t => t.id === templateIdFromQuery);
       if (templateExists) {
         console.log(`Pre-selecting template: ${templateIdFromQuery}`);
         setSelectedTemplate(templateIdFromQuery);
-        setCurrentStep(1); // Skip to the next step (Content Input)
+        setCurrentStep(1);
       } else {
         console.warn(`Template ID "${templateIdFromQuery}" from query param not found.`);
-        // Optional: Show a toast message?
-        // toast.error(`Invalid template specified.`);
       }
     }
-  }, [searchParams]); // Run only when searchParams changes (usually on initial load)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, customTemplates]); // Depend on customTemplates as well
 
-  // Image Generation State
-  const [generateImage, setGenerateImage] = useState(false); // Flag to control image generation
-  const [imagePrompt, setImagePrompt] = useState(""); // User's custom prompt
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null); // Stores the URL *after* API call
-  const [imageError, setImageError] = useState<string | null>(null); // Stores any image error from API
-
-  // Handle template selection
-  const handleTemplateSelect = (template: string) => {
-    setSelectedTemplate(template);
+  // Load custom templates from localStorage
+  const loadCustomTemplates = () => {
+    try {
+      const savedTemplates = localStorage.getItem('customTemplates');
+      if (savedTemplates) {
+        setCustomTemplates(JSON.parse(savedTemplates));
+      }
+    } catch (error) {
+      console.error('Error loading custom templates:', error);
+    }
   };
 
-  // Handle file upload and transcription
-  const handleFileUpload = async () => {
-    if (!file) return;
+  // *** Filtering Logic Lifted from Templates Page ***
+  useEffect(() => {
+    const allAvailableTemplates = [...TEMPLATES, ...customTemplates];
+    let filtered = allAvailableTemplates;
 
-    // Check if user has enough tokens for transcription
-    if (!canPerformOperation("VIDEO_PROCESSING" as OperationType)) {
-      toast.error("You don't have enough tokens to process this file. Please upgrade your subscription.");
-      return;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(t => t.title.toLowerCase().includes(query) || t.description.toLowerCase().includes(query));
     }
 
+    if (selectedCategory !== "all") {
+       // Note: 'favorite' category might not apply here unless we fetch/manage favorites in this component too
+       if (selectedCategory === "custom") {
+         filtered = filtered.filter(t => t.type === "custom");
+       } else {
+         filtered = filtered.filter(t => t.type === selectedCategory);
+       }
+    }
+
+    // Add premium filter logic if needed later
+    // if (!showPremium) {
+    //   filtered = filtered.filter(t => !t.premium);
+    // }
+
+    setFilteredTemplates(filtered);
+  }, [searchQuery, selectedCategory, customTemplates]); // Removed showPremium and userTemplates dependencies for now
+  // *** End Lifted Filtering Logic ***
+
+  // Handle template selection (now just sets the ID)
+  const handleTemplateSelect = (templateId: string) => {
+    const template = [...TEMPLATES, ...customTemplates].find(t => t.id === templateId);
+    if (!template) return;
+    // Premium check (using lifted userPlan state)
+    if (template.premium && userPlan === "Free") {
+      toast.error("This template requires a Pro or Enterprise subscription");
+      return;
+    }
+    setSelectedTemplate(templateId);
+    // Optionally move to next step automatically upon selection?
+    // setCurrentStep(1);
+  };
+
+  // Handlers for filter changes
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+  };
+
+  // Handle file upload and transcription (remains the same)
+  const handleFileUpload = async () => {
+    if (!file) return;
+    if (!canPerformOperation("VIDEO_PROCESSING" as OperationType)) {
+      toast.error("You don't have enough tokens to process this file.");
+      return;
+    }
     setIsUploading(true);
     setUploadProgress(0);
-
     try {
-      // Create FormData to send file
       const formData = new FormData();
       formData.append("file", file);
-
-      // Simulate progress updates
       const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          const newProgress = prev + 10;
-          return newProgress >= 90 ? 90 : newProgress;
-        });
+        setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 500);
-
-      // Call transcription API
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        body: formData,
-      });
-
+      const response = await fetch("/api/transcribe", { method: "POST", body: formData });
       clearInterval(progressInterval);
       setUploadProgress(100);
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
-
+      if (!response.ok) throw new Error(`Error: ${response.statusText}`);
       const data = await response.json();
       setOriginalContent(data.transcript);
-
-      // Record token transaction
       await recordTokenTransaction("VIDEO_PROCESSING" as OperationType);
-
       toast.success("File transcribed successfully");
     } catch (error) {
       console.error("Transcription error:", error);
-      toast.error("Failed to transcribe file. Please try again.");
+      toast.error("Failed to transcribe file.");
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Handle content generation
+  // Handle content generation (remains mostly the same)
   const handleSubmit = async () => {
     if (!originalContent.trim() || !selectedTemplate) {
       toast.error("Please enter content and select a template");
       return;
     }
-
-    // Check if user has enough tokens
     if (!canPerformOperation("TEXT_REPURPOSE" as OperationType)) {
-      toast.error("You don't have enough tokens. Please upgrade your subscription.");
+      toast.error("You don't have enough tokens.");
       return;
     }
-
     setLoading(true);
-    setRepurposedContent(""); // Clear previous results
-    setGeneratedImageUrl(null); // Clear previous image URL
-    setImageError(null); // Clear previous image error
-
-    // Get user ID from useUser hook
+    setRepurposedContent("");
+    setGeneratedImageUrl(null);
+    setImageError(null);
     const userId = user?.id;
-
-    // Prepare data for API call
     const requestBody = {
       originalContent,
-      outputFormat: selectedTemplate, // Use template ID as format
+      outputFormat: selectedTemplate,
       tone,
       contentLength,
       targetAudience,
-      userId: userId || null, // Send userId if available
-      generateImage: generateImage && !!userId, // Only generate if flag is true AND user is logged in
-      imagePrompt: generateImage ? imagePrompt : undefined, // Send prompt only if generating
-      // Add imageSize and imageStyle if needed later
+      userId: userId || null,
+      generateImage: generateImage && !!userId,
+      imagePrompt: generateImage ? imagePrompt : undefined,
     };
-
-    console.log("Sending request to /api/repurpose:", requestBody);
-
     try {
-      // Call the actual repurpose API endpoint
       const response = await fetch("/api/repurpose", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Add auth token if your API requires it (recommended)
-          // Authorization: `Bearer ${accessToken}`
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-
       const data = await response.json();
-      console.log("Received response from /api/repurpose:", data);
-
-      if (!response.ok) {
-        // Handle API errors (content or general)
-        throw new Error(data.error || `API request failed with status ${response.status}`);
-      }
-
-      // Update state with results
+      if (!response.ok) throw new Error(data.error || `API request failed`);
       setRepurposedContent(data.repurposedContent);
-      setGeneratedImageUrl(data.generatedImageUrl || null); // Update with URL from API response
-      setImageError(data.imageError || null); // Update with error from API response
-
-      // Record token transaction only if content generation part was successful
-      // Note: Token deduction for image generation should ideally happen within the API route
-      // or be triggered based on the response. For now, just record text repurpose.
-      if (userId) { // Only record if user is logged in
+      setGeneratedImageUrl(data.generatedImageUrl || null);
+      setImageError(data.imageError || null);
+      if (userId) {
          await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
-         // TODO: Consider adding separate token transaction for image generation based on response
       }
-
-      // Show appropriate success/error messages
       toast.success("Content generated successfully!");
-      if (data.imageError) {
-        toast.error(`Image generation failed: ${data.imageError}`, { duration: 5000 });
-      } else if (data.generatedImageUrl) {
-        toast.success("Image generated successfully!");
-      }
-
-      // Automatically move to the final step
+      if (data.imageError) toast.error(`Image generation failed: ${data.imageError}`, { duration: 5000 });
+      else if (data.generatedImageUrl) toast.success("Image generated successfully!");
       setCurrentStep(4);
     } catch (error) {
-      console.error("Error during content generation process:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast.error(`Failed to generate content: ${errorMessage}`);
+      console.error("Error generating content:", error);
+      toast.error(`Failed to generate content: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle copying content to clipboard
+  // Handle copying content (remains the same)
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(repurposedContent);
     toast.success("Copied to clipboard");
   };
 
-  // Handle resetting the form
+  // Handle resetting the form (remains the same)
   const handleReset = () => {
     setOriginalContent("");
     setRepurposedContent("");
     setSelectedTemplate(null);
     setFile(null);
     setCurrentStep(0);
-    // Removed qualityMetrics reset
-    // Reset image state as well
     setGenerateImage(false);
     setImagePrompt("");
     setGeneratedImageUrl(null);
     setImageError(null);
+    // Reset filters as well
+    setSearchQuery("");
+    setSelectedCategory("all");
   };
 
-  // Removed analyzeContentQuality function and related useEffect hook
-
-  // Define the steps for our creation workflow
+  // Define the steps, passing new props to TemplateSelectionStep
   const steps = [
     {
       id: "template",
@@ -259,6 +278,12 @@ export default function Create() {
         <TemplateSelectionStep
           selectedTemplate={selectedTemplate}
           onTemplateSelect={handleTemplateSelect}
+          // Pass filtering state and handlers
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          selectedCategory={selectedCategory}
+          onCategoryChange={handleCategoryChange}
+          filteredTemplates={filteredTemplates} // Pass the filtered list
         />
       ),
     },
@@ -297,16 +322,14 @@ export default function Create() {
     },
     {
       id: "images",
-      title: "Add Image (Optional)", // Update title
+      title: "Add Image (Optional)",
       content: (
         <ImageGeneratorStep
           generateImage={generateImage}
           setGenerateImage={setGenerateImage}
           imagePrompt={imagePrompt}
           setImagePrompt={setImagePrompt}
-          // Pass the final URL from state to display if generation was successful
           currentImageUrl={generatedImageUrl}
-          // Pass any error message
           imageError={imageError}
         />
       ),
@@ -326,17 +349,9 @@ export default function Create() {
             repurposedContent={repurposedContent}
             handleCopyToClipboard={handleCopyToClipboard}
             handleReset={handleReset}
-            // Removed quality analysis props
-            // qualityMetrics={qualityMetrics}
-            // isAnalyzing={isAnalyzing}
-            // analyzeContentQuality={analyzeContentQuality}
-            // analysisTarget={analysisTarget}
-            // setAnalysisTarget={setAnalysisTarget}
-            // originalContent={originalContent} // Not needed by simplified ResultsStep
             selectedTemplate={selectedTemplate}
-            // Pass the generated image URL to the results step
             generatedImageUrl={generatedImageUrl}
-            imageError={imageError} // Pass image error as well
+            imageError={imageError}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-12">
@@ -349,9 +364,9 @@ export default function Create() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 pb-12"> {/* Keep pb-12 */}
       <Toaster position="top-right" />
-      
+
       {/* Breadcrumbs */}
       <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "New Content" }]} />
 
@@ -359,7 +374,7 @@ export default function Create() {
         <h1 className="text-2xl font-bold text-gray-900">
           Create New Content
         </h1>
-        
+
         {/* Token usage indicator */}
         <div className="flex items-center bg-indigo-50 px-3 py-1.5 rounded-md">
           <Sparkles className="h-4 w-4 text-indigo-500 mr-1.5" />
@@ -371,15 +386,12 @@ export default function Create() {
 
       {/* Main content area */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <CreationSteps 
+        <CreationSteps
           steps={steps}
           currentStep={currentStep}
           setCurrentStep={setCurrentStep}
           onComplete={handleSubmit}
-          // Pass state needed for validation
-          selectedTemplate={selectedTemplate} 
-          // Pass generated image URL to potentially show in final step or save
-          // generatedImageUrl={generatedImageUrl} // We'll add this to handleSubmit instead
+          selectedTemplate={selectedTemplate}
         />
       </div>
     </div>

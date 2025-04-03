@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { Button } from './button';
+import { ContentPreview } from './content-preview'; // Import ContentPreview
 
 interface TemplatePreviewModalProps {
   isOpen: boolean;
@@ -51,10 +52,13 @@ export function TemplatePreviewModal({ isOpen, onClose, template }: TemplatePrev
           </div>
 
           <div>
-            <h4 className="text-sm font-medium text-gray-500 mb-1">Preview</h4>
-            <div className="bg-gray-50 p-4 text-gray-700 rounded-md border border-gray-200 whitespace-pre-wrap">
-              {getPreviewContent()}
-            </div>
+            <h4 className="text-sm font-medium text-gray-500 mb-2">Preview</h4>
+            {/* Use ContentPreview component */}
+            <ContentPreview 
+              content={getPreviewContent()} 
+              platform={template.platform || template.type} // Pass platform or type
+              imageUrl={null} // No image for template preview
+            />
           </div>
         </div>
 

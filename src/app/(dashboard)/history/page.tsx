@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ContentCard } from "@/components/ui/content-card";
 import { Search } from "@/components/ui/search";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"; // Import Breadcrumbs
+// Removed unused Breadcrumbs import
 
 interface ContentHistoryItem {
   id: string;
@@ -135,12 +135,16 @@ export default function History() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
 
-      {/* Breadcrumbs */}
-      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Content History" }]} />
+      {/* Breadcrumbs REMOVED */}
+      {/* <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Content History" }]} /> */}
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Content History</h1>
-        <Button onClick={() => router.push("/create")} variant="primary" className="w-full sm:w-auto">
+      {/* Adjusted Header Layout */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4"> {/* Increased mb */}
+        <div> {/* Wrapped title and added description */}
+          <h1 className="text-2xl font-bold text-gray-900">Content History</h1>
+          <p className="text-gray-500 mt-1">Review and manage your previously generated content.</p>
+        </div>
+        <Button onClick={() => router.push("/create")} variant="primary" className="w-full sm:w-auto flex-shrink-0"> {/* Added flex-shrink-0 */}
           Create New Content
         </Button>
       </div>

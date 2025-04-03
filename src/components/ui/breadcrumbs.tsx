@@ -13,9 +13,12 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({ items, className = '' }: BreadcrumbsProps) {
+  const lastItem = items[items.length - 1];
+
   return (
     <nav aria-label="Breadcrumb" className={`mb-6 ${className}`}>
-      <ol className="flex items-center space-x-1 text-sm text-gray-500">
+      {/* Full breadcrumbs for medium screens and up */}
+      <ol className="hidden md:flex items-center space-x-1 text-sm text-gray-500">
         {items.map((item, index) => (
           <li key={index} className="flex items-center">
             {index > 0 && (
@@ -34,6 +37,11 @@ export function Breadcrumbs({ items, className = '' }: BreadcrumbsProps) {
           </li>
         ))}
       </ol>
+      {/* Simplified breadcrumb for small screens (only show last item) */}
+      <div className="block md:hidden text-sm font-medium text-gray-700">
+         {/* Optionally add a back arrow or home icon link here if needed */}
+         <span>{lastItem?.label}</span>
+      </div>
     </nav>
   );
 }

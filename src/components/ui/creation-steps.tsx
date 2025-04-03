@@ -75,10 +75,10 @@ export function CreationSteps({
                 )}
               </button>
               
-              {/* Step title */}
+              {/* Step title - Added min-height and text-center for alignment */}
               <span 
                 className={`
-                  mt-2 text-xs font-medium
+                  mt-2 text-xs font-medium text-center min-h-[2.5rem] w-full flex items-center justify-center px-1 {/* Added text-center, min-height, w-full, flex items-center justify-center, px-1 */}
                   ${
                     index <= currentStep ? 'text-indigo-600' : 'text-gray-500'
                   }
@@ -90,16 +90,11 @@ export function CreationSteps({
           ))}
         </div>
       </div>
-      
-      {/* Current step content */}
-      <div className="mb-6">
-        {steps[currentStep].content}
-      </div>
-      
-      {/* Navigation buttons */}
-      <div className="flex justify-between mt-8">
-        <button
-          onClick={() => setCurrentStep(currentStep - 1)}
+
+      {/* Navigation buttons - Moved to top, removed sticky classes */}
+      <div className="flex justify-between px-6 mb-8"> {/* Removed sticky, added mb-8 */}
+          <button
+            onClick={() => setCurrentStep(currentStep - 1)}
           disabled={currentStep === 0}
           className={`
             px-4 py-2 text-sm 
@@ -146,8 +141,16 @@ export function CreationSteps({
               <ChevronRight className="ml-1 h-3 w-3" />
             </>
           )}
-        </button>
+          </button>
       </div>
+      
+      {/* Current step content - Removed bottom padding */}
+      <div className="mb-6"> {/* Removed pb-24 */}
+        {steps[currentStep].content}
+      </div>
+      
+      {/* Sticky Navigation buttons Container - REMOVED */}
+      
     </div>
   );
 }
