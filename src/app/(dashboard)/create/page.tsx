@@ -20,6 +20,7 @@ import { ContentInputStep } from "@/components/ui/content-input-step";
 import { OutputSettingsStep } from "@/components/ui/output-settings-step";
 import { ImageGeneratorStep } from "@/components/ui/image-generator-step";
 import { ResultsStep } from "@/components/ui/results-step";
+import { TemplatePreviewModal } from "@/components/ui/template-preview-modal"; // Import modal
 import React from 'react'; // Import React
 
 export default function Create() {
@@ -70,6 +71,10 @@ export default function Create() {
   // Removed unused showPremium state
   const [userPlan, setUserPlan] = useState<string>("Free"); // Needed for premium check
   // *** End Lifted State ***
+
+  // State for Preview Modal
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [templateToPreview, setTemplateToPreview] = useState<Template | null>(null);
 
   // Effect to get user plan (needed for premium template check)
   useEffect(() => {
@@ -172,6 +177,15 @@ export default function Create() {
     setSelectedCategory(categoryId);
   };
 
+  // Handler for opening the preview modal
+  const handlePreviewTemplate = (templateId: string) => {
+    const template = [...TEMPLATES, ...customTemplates].find(t => t.id === templateId);
+    if (template) {
+      setTemplateToPreview(template);
+      setIsPreviewModalOpen(true);
+    }
+  };
+
   // Handle file upload and transcription (remains the same)
   const handleFileUpload = async () => {
     if (!file) return;
@@ -239,15 +253,12 @@ export default function Create() {
       setRepurposedContent(data.repurposedContent);
       setGeneratedImageUrl(data.generatedImageUrl || null);
       setImageError(data.imageError || null);
-      if (userId) {
-         // Always record text repurpose cost
-         await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
-         // Conditionally record image generation cost if successful
-         if (data.generatedImageUrl && !data.imageError) {
-           await recordTokenTransaction("IMAGE_GENERATION" as OperationType); // Assuming this type exists
-         }
-         // Explicitly refresh token usage state AFTER transactions
-         await fetchTokenUsage(); // Now defined
+       if (userId) {
+          // Always record text repurpose cost
+          await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
+          // IMAGE_GENERATION cost is now handled by the backend API before generation occurs.
+          // Explicitly refresh token usage state AFTER transactions to reflect backend changes
+          await fetchTokenUsage(); // Now defined
          await fetchTransactionHistory(); // Now defined
       }
       toast.success("Content generated successfully!");
@@ -299,6 +310,8 @@ export default function Create() {
           selectedCategory={selectedCategory}
           onCategoryChange={handleCategoryChange}
           filteredTemplates={filteredTemplates} // Pass the filtered list
+          // Pass the preview handler down
+          onPreviewTemplate={handlePreviewTemplate} 
         />
       ),
     },
@@ -346,6 +359,9 @@ export default function Create() {
           setImagePrompt={setImagePrompt}
           currentImageUrl={generatedImageUrl}
           imageError={imageError}
+          // Pass user plan and token balance
+          userPlan={userPlan}
+          tokensRemaining={tokenUsage?.tokensRemaining ?? 0}
         />
       ),
     },
@@ -409,6 +425,15 @@ export default function Create() {
           selectedTemplate={selectedTemplate}
         />
       </div>
+
+      {/* Render Preview Modal */}
+      {templateToPreview && isPreviewModalOpen && (
+        <TemplatePreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          template={templateToPreview}
+        />
+      )}
     </div>
   );
 }

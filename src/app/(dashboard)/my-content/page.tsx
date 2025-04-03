@@ -33,8 +33,8 @@ interface ContentHistoryItem {
   generated_image_url?: string | null; // Correct column name
 }
 
-export default function History() {
-  usePageTitle("Content History");
+export default function MyContent() { // Renamed component
+  usePageTitle("My Content"); // Updated page title
   const router = useRouter();
   const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,8 +141,8 @@ export default function History() {
       {/* Adjusted Header Layout */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4"> {/* Increased mb */}
         <div> {/* Wrapped title and added description */}
-          <h1 className="text-2xl font-bold text-gray-900">Content History</h1>
-          <p className="text-gray-500 mt-1">Review and manage your previously generated content.</p>
+          <h1 className="text-2xl font-bold text-gray-900">My Content</h1>
+          <p className="text-gray-500 mt-1">Review, manage, and edit your previously generated content and images.</p>
         </div>
         <Button onClick={() => router.push("/create")} variant="primary" className="w-full sm:w-auto flex-shrink-0"> {/* Added flex-shrink-0 */}
           Create New Content

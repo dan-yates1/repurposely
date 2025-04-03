@@ -149,7 +149,7 @@ export default function EditContentPage() {
        {/* Breadcrumbs */}
        <Breadcrumbs items={[
           { label: "Dashboard", href: "/dashboard" }, 
-          { label: "History", href: "/history" }, 
+          { label: "My Content", href: "/my-content" }, 
           { label: "View", href: `/content/${contentId}` },
           { label: "Edit" }
        ]} />

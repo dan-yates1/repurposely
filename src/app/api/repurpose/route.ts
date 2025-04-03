@@ -3,6 +3,16 @@ import { generateContent } from '@/lib/claude';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { ImageGenerationService, ImageSize, ImageStyle } from '@/lib/image-generation-service'; // Import service and types
 
+// Define constants for image generation
+const IMAGE_GENERATION_COST = 10;
+const ALLOWED_PLANS_FOR_IMAGE_GEN = ['Pro', 'Enterprise']; // Adjust plan names if necessary
+
+// Define an interface for the user profile data we need
+interface UserProfile {
+  plan_name: string;
+  tokens_remaining: number;
+}
+
 export async function POST(request: NextRequest) {
   let uploadedImageUrl: string | null = null; // Variable to hold the final image URL
   let imageGenError: string | null = null; // Variable to hold image generation errors
@@ -39,9 +49,77 @@ export async function POST(request: NextRequest) {
        );
     }
 
-    // --- Image Generation (Conditional) ---
-    if (generateImage && userId) {
+    // --- Fetch User Data (Needed for potential image generation) ---
+    let userProfile: UserProfile | null = null; // Use the defined interface
+    if (userId) {
       try {
+        const supabaseAdmin = createAdminClient();
+        const { data: profileData, error: profileError } = await supabaseAdmin
+          .from('profiles') // Assuming your table is named 'profiles'
+          .select('plan_name, tokens_remaining') // Fetch plan and tokens
+          .eq('id', userId)
+          .single();
+
+        if (profileError) {
+          console.error(`Error fetching profile for user ${userId}:`, profileError);
+          // Decide if this should be a fatal error or just prevent image gen
+          // For now, let content gen proceed but log error
+        } else if (!profileData) {
+          console.warn(`No profile found for user ${userId}`);
+          // Handle case where user exists in auth but not profiles table?
+        } else {
+          userProfile = profileData;
+          console.log(`Fetched profile for user ${userId}: Plan=${userProfile.plan_name}, Tokens=${userProfile.tokens_remaining}`);
+        }
+      } catch (err) {
+        console.error(`Unexpected error fetching profile for user ${userId}:`, err);
+      }
+    }
+
+
+    // --- Image Generation (Conditional) ---
+    if (generateImage && userId && userProfile) { // Check userProfile exists
+      try {
+        // 1. Check Subscription Plan
+        if (!ALLOWED_PLANS_FOR_IMAGE_GEN.includes(userProfile.plan_name)) {
+          console.log(`User ${userId} on plan ${userProfile.plan_name} attempted image generation. Required: ${ALLOWED_PLANS_FOR_IMAGE_GEN.join('/')}`);
+          return NextResponse.json(
+            { error: 'Image generation is only available for Pro and Enterprise plans. Please upgrade your subscription.' },
+            { status: 403 } // Forbidden
+          );
+        }
+        console.log(`User ${userId} plan check passed (${userProfile.plan_name}).`);
+
+        // 2. Check Token Balance
+        if (userProfile.tokens_remaining < IMAGE_GENERATION_COST) {
+          console.log(`User ${userId} attempted image generation with insufficient tokens (${userProfile.tokens_remaining} < ${IMAGE_GENERATION_COST}).`);
+          return NextResponse.json(
+            { error: `Insufficient tokens for image generation. Requires ${IMAGE_GENERATION_COST}, you have ${userProfile.tokens_remaining}.` },
+            { status: 402 } // Payment Required
+          );
+        }
+         console.log(`User ${userId} token balance check passed (${userProfile.tokens_remaining} >= ${IMAGE_GENERATION_COST}).`);
+
+        // 3. Deduct Tokens BEFORE generation
+        const newBalance = userProfile.tokens_remaining - IMAGE_GENERATION_COST;
+        const supabaseAdmin = createAdminClient(); // Re-init or reuse instance
+        const { error: updateError } = await supabaseAdmin
+          .from('profiles')
+          .update({ tokens_remaining: newBalance })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.error(`Failed to deduct tokens for user ${userId}:`, updateError);
+          return NextResponse.json(
+            { error: 'Failed to update token balance. Please try again.' },
+            { status: 500 } // Internal Server Error
+          );
+        }
+        console.log(`Successfully deducted ${IMAGE_GENERATION_COST} tokens from user ${userId}. New balance: ${newBalance}`);
+        // Update local state for logging consistency if needed later
+        userProfile.tokens_remaining = newBalance; 
+
+        // 4. Proceed with Image Generation
         // Improved default prompt generation
         finalImagePrompt = imagePrompt; // Assign to outer scope variable
         if (!finalImagePrompt) {

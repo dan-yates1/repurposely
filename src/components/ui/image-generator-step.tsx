@@ -3,18 +3,25 @@
 import React from 'react'; // Import React for JSX
 import { AlertTriangle } from 'lucide-react'; // Removed unused Copy
 // Removed unused toast import
-import { Label } from '@/components/ui/label'; 
-import { Textarea } from '@/components/ui/textarea'; 
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from './checkbox';
+import { Lock } from 'lucide-react'; // Import Lock icon
 
-// Define the props based on the parent component (create/page.tsx)
+// Define constants for image generation requirements
+const IMAGE_GENERATION_COST = 10;
+const ALLOWED_PLANS_FOR_IMAGE_GEN = ['Pro', 'Enterprise']; // Case-sensitive
+
+// Update props interface to include user plan and tokens
 interface ImageGeneratorStepProps {
   generateImage: boolean;
   setGenerateImage: React.Dispatch<React.SetStateAction<boolean>>;
   imagePrompt: string;
   setImagePrompt: React.Dispatch<React.SetStateAction<string>>;
-  currentImageUrl: string | null; // URL received *after* generation
-  imageError: string | null; // Error message received *after* generation attempt
+  currentImageUrl: string | null;
+  imageError: string | null;
+  userPlan: string; // Add user plan prop
+  tokensRemaining: number; // Add tokens remaining prop
 }
 
 export function ImageGeneratorStep({
@@ -24,7 +31,29 @@ export function ImageGeneratorStep({
   setImagePrompt,
   currentImageUrl,
   imageError,
+  userPlan, // Destructure new props
+  tokensRemaining, // Destructure new props
 }: ImageGeneratorStepProps) {
+
+  // Determine if the user meets the requirements
+  const isPlanAllowed = ALLOWED_PLANS_FOR_IMAGE_GEN.includes(userPlan);
+  const hasEnoughTokens = tokensRemaining >= IMAGE_GENERATION_COST;
+  const canGenerateImage = isPlanAllowed && hasEnoughTokens;
+
+  // Determine the reason for disabling, if any
+  let disabledReason = "";
+  if (!isPlanAllowed) {
+    disabledReason = `Requires Pro or Enterprise plan (Current: ${userPlan}).`;
+  } else if (!hasEnoughTokens) {
+    disabledReason = `Requires ${IMAGE_GENERATION_COST} tokens (Remaining: ${tokensRemaining}).`;
+  }
+
+  // Automatically uncheck if requirements are not met
+  React.useEffect(() => {
+    if (!canGenerateImage && generateImage) {
+      setGenerateImage(false);
+    }
+  }, [canGenerateImage, generateImage, setGenerateImage]);
 
   return (
     <div>
@@ -34,7 +63,7 @@ export function ImageGeneratorStep({
 
       <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
         <p className="text-sm text-blue-800">
-          <span className="font-medium">Tip:</span> An image will be generated alongside your content if you check the box below. You can provide specific instructions, otherwise an image relevant to your original content will be attempted. (Costs 5 tokens)
+          <span className="font-medium">Tip:</span> An image will be generated alongside your content if you check the box below. You can provide specific instructions, otherwise an image relevant to your original content will be attempted. (Costs {IMAGE_GENERATION_COST} tokens)
         </p>
       </div>
 
@@ -43,16 +72,31 @@ export function ImageGeneratorStep({
         <Checkbox
           id="generate-image-checkbox"
           checked={generateImage}
-          // Add explicit type for 'checked' parameter
-          onCheckedChange={(checked: boolean | 'indeterminate') => setGenerateImage(Boolean(checked))} 
+          disabled={!canGenerateImage} // Disable if requirements not met
+          onCheckedChange={(checked: boolean | 'indeterminate') => {
+            if (canGenerateImage) { // Only allow checking if eligible
+              setGenerateImage(Boolean(checked));
+            }
+          }}
         />
-        <Label htmlFor="generate-image-checkbox" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <Label 
+          htmlFor="generate-image-checkbox" 
+          className={`text-sm font-medium leading-none ${!canGenerateImage ? 'text-gray-400 cursor-not-allowed' : 'peer-disabled:cursor-not-allowed peer-disabled:opacity-70'}`}
+        >
           Generate an image with this content
         </Label>
+        {!canGenerateImage && (
+          <Lock className="h-4 w-4 text-gray-400 ml-1" aria-hidden="true" />
+        )}
       </div>
 
-      {/* Prompt input - only show if checkbox is checked */}
-      {generateImage && (
+      {/* Display reason if disabled */}
+      {!canGenerateImage && disabledReason && (
+        <p className="text-xs text-red-600 mb-4 -mt-2 ml-8">{disabledReason}</p>
+      )}
+
+      {/* Prompt input - only show if checkbox is checked AND user is eligible */}
+      {generateImage && canGenerateImage && (
         <div className="space-y-2 mb-4">
           <Label htmlFor="image-prompt">Image Instructions (Optional)</Label>
           <Textarea

@@ -176,7 +176,7 @@ export default function ContentView() {
       {/* Breadcrumbs */}
       <Breadcrumbs items={[
           { label: "Dashboard", href: "/dashboard" }, 
-          { label: "History", href: "/history" }, 
+          { label: "My Content", href: "/my-content" }, 
           { label: content?.content_type || "View Content" }
       ]} />
 

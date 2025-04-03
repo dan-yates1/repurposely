@@ -191,8 +191,9 @@ export default function PricingClient() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span className="text-gray-700">
-                      10 image generations (5 tokens each)
+                    {/* Update Free plan - Image Gen N/A */}
+                    <span className="text-gray-700 text-gray-400 line-through">
+                      Image Generation
                     </span>
                   </li>
                   <li className="flex items-center">
@@ -276,8 +277,9 @@ export default function PricingClient() {
                         clipRule="evenodd"
                       />
                     </svg>
+                    {/* Update Pro plan - 50 images @ 10 tokens */}
                     <span className="text-gray-700">
-                      100 image generations (5 tokens each)
+                      Up to 50 image generations (10 tokens each)
                     </span>
                   </li>
                   <li className="flex items-center">
@@ -378,8 +380,9 @@ export default function PricingClient() {
                         clipRule="evenodd"
                       />
                     </svg>
+                    {/* Update Enterprise plan - 200 images @ 10 tokens */}
                     <span className="text-gray-700">
-                      400 image generations (5 tokens each)
+                      Up to 200 image generations (10 tokens each)
                     </span>
                   </li>
                   <li className="flex items-center">
@@ -465,10 +468,10 @@ export default function PricingClient() {
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Image Generation</h3>
               <p className="text-gray-600 mb-2">
-                Create images to complement your content
+                Create images to complement your content (Pro/Enterprise only)
               </p>
               <p className="text-indigo-600 font-semibold">
-                5 tokens per image
+                10 tokens per image
               </p>
             </div>
 
@@ -496,11 +499,11 @@ export default function PricingClient() {
                   Social Media Manager
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• 30 text repurposes (30 tokens)</li>
+                  <li>• Up to 50 text repurposes (50 tokens)</li>
                   {/* Removed quality analyses */}
-                  <li>• 0 images/videos (0 tokens)</li>
+                  <li>• Image Generation N/A</li>
                   <li className="text-indigo-600 font-medium pt-2">
-                    Total: 50 tokens (Free plan) {/* Adjusted total if needed */}
+                    Total: 50 tokens (Free plan)
                   </li>
                 </ul>
               </div>
@@ -510,11 +513,11 @@ export default function PricingClient() {
                   Content Creator
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• 200 text repurposes (200 tokens)</li>
+                  <li>• Up to 500 text repurposes (500 tokens)</li>
                   {/* Removed quality analyses */}
-                  <li>• 40 images (200 tokens)</li>
+                  <li>• 0 images (0 tokens)</li> {/* Example assumes no images used, adjust if needed */}
                   <li className="text-indigo-600 font-medium pt-2">
-                    Total: 400 tokens (Pro plan) {/* Adjusted total */}
+                    Total: 500 tokens (Pro plan) {/* Example calculation */}
                   </li>
                 </ul>
               </div>
@@ -524,12 +527,12 @@ export default function PricingClient() {
                   Marketing Agency
                 </h4>
                 <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• 800 text repurposes (800 tokens)</li>
+                  <li>• Up to 1500 text repurposes (1500 tokens)</li>
                   {/* Removed quality analyses */}
-                  <li>• 100 images (500 tokens)</li>
-                  <li>• 10 videos (100 tokens)</li>
+                  <li>• 50 images (500 tokens)</li> {/* Example: 50 images * 10 tokens */}
+                  <li>• 0 videos (0 tokens)</li> {/* Example assumes no videos */}
                   <li className="text-indigo-600 font-medium pt-2">
-                    Total: 1400 tokens (Enterprise plan) {/* Adjusted total */}
+                    Total: 2000 tokens (Enterprise plan) {/* Example calculation */}
                   </li>
                 </ul>
               </div>

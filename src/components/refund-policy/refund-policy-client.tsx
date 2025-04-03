@@ -1,11 +1,9 @@
 "use client"; // Keep this directive here
 
 // Removed Metadata import
-import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { Navbar } from "../ui/navbar";
 
 // Renamed the component
 export default function RefundPolicyClient() {
@@ -31,33 +29,7 @@ export default function RefundPolicyClient() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navigation */}
-      <nav className="bg-white py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <Logo />
-            <div className="flex space-x-6 items-center">
-              <Link href="/auth">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Get Pro
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Content */}
       <div className="flex-grow">
@@ -96,7 +68,7 @@ export default function RefundPolicyClient() {
 
               <h3>How to Request a Refund</h3>
               <p>
-                To request a refund, please contact our support team at support@repurposely.com with the following information:
+                To request a refund, please contact our support team at contact@repurposelyapp.com with the following information:
               </p>
               <ul>
                 <li>Your account email address</li>
@@ -119,7 +91,7 @@ export default function RefundPolicyClient() {
               </p>
               <ul>
                 <li>Through your account settings page by selecting &quot;Manage Subscription&quot; and then &quot;Cancel Subscription&quot;</li>
-                <li>By emailing our support team at support@repurposely.com with your cancellation request</li>
+                <li>By emailing our support team at contact@repurposelyapp.com with your cancellation request</li>
               </ul>
 
               <h3>What Happens After Cancellation</h3>
@@ -144,7 +116,7 @@ export default function RefundPolicyClient() {
                 If you have any questions or concerns about our refund and cancellation policies, please contact our support team:
               </p>
               <p>
-                Email: support@repurposely.com<br />
+                Email: contact@repurposelyapp.com<br />
                 Phone: (555) 123-4567<br />
                 Hours of Operation: Monday to Friday, 9:00 AM to 5:00 PM PST
               </p>

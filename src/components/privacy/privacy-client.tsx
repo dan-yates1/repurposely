@@ -1,11 +1,9 @@
 "use client"; // Keep this directive here
 
 // Removed Metadata import
-import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { Navbar } from "../ui/navbar";
 
 // Renamed the component
 export default function PrivacyClient() {
@@ -31,33 +29,7 @@ export default function PrivacyClient() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navigation */}
-      <nav className="bg-white py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <Logo />
-            <div className="flex space-x-6 items-center">
-              <Link href="/auth">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Sign Up
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-full px-6 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  Get Pro
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Content */}
       <div className="flex-grow">
@@ -145,7 +117,7 @@ export default function PrivacyClient() {
                 <li>Withdrawing your consent at any time (where processing is based on consent)</li>
               </ul>
               <p>
-                To exercise these rights, please contact us at privacy@repurposely.com.
+                To exercise these rights, please contact us at privacy@repurposelyapp.com.
               </p>
 
               <h2>8. Children’s Privacy</h2>
@@ -163,7 +135,7 @@ export default function PrivacyClient() {
                 If you have any questions or concerns about this Privacy Policy or our privacy practices, please contact us at:
               </p>
               <p>
-                Email: privacy@repurposely.com<br />
+                Email: privacy@repurposelyapp.com<br />
                 Address: 123 AI Avenue, Suite 456, San Francisco, CA 94103
               </p>
             </div>

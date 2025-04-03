@@ -250,17 +250,20 @@ export default function HomeClient() {
                 2
               </div>
               <h3 className="text-xl font-semibold mb-2 text-gray-800">
-                AI Image Generation
+                AI Image Generation (Pro/Enterprise)
               </h3>
               <p className="text-gray-600">
-                Generate relevant images to accompany your repurposed content
-                and boost engagement.
+                Generate relevant images to accompany your repurposed content.
+                Available on Pro and Enterprise plans.
               </p>
               <p className="text-indigo-600 mt-2 text-sm font-medium">
-                5 tokens per image
+                10 tokens per image
               </p>
             </div>
 
+            {/* Note: The 'Advanced Media' section seems redundant or outdated now. 
+                 Consider removing or revising it separately if needed. 
+                 Keeping it for now to avoid breaking layout. */}
             <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">
                 3
@@ -298,8 +301,8 @@ export default function HomeClient() {
                   Perfect for trying out the platform
                 </p>
                 <ul className="text-sm text-gray-600 space-y-2 mb-6">
-                  <li>50 text repurposes</li>
-                  <li>10 image generations</li>
+                  <li>Up to 50 text repurposes</li>
+                  <li>Image Generation N/A</li>
                   <li>Basic video processing</li>
                 </ul>
                 <Link href="/auth">
@@ -321,8 +324,8 @@ export default function HomeClient() {
                   For content creators and small teams
                 </p>
                 <ul className="text-sm text-gray-600 space-y-2 mb-6">
-                  <li>500 text repurposes</li>
-                  <li>100 image generations</li>
+                  <li>Up to 500 text repurposes</li>
+                  <li>Up to 50 image generations (10 tokens each)</li>
                   <li>Standard video processing</li>
                 </ul>
                 <Link href="/pricing">
@@ -341,8 +344,8 @@ export default function HomeClient() {
                   For agencies and large teams
                 </p>
                 <ul className="text-sm text-gray-600 space-y-2 mb-6">
-                  <li>2000 text repurposes</li>
-                  <li>400 image generations</li>
+                  <li>Up to 2000 text repurposes</li>
+                  <li>Up to 200 image generations (10 tokens each)</li>
                   <li>Advanced video processing</li>
                 </ul>
                 <Link href="/contact">

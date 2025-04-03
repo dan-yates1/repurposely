@@ -7,16 +7,17 @@ import toast, { Toaster } from "react-hot-toast";
 import {
   Search,
   Filter,
-  Star,
-  StarOff,
+  // Star, // Removed unused icon
+  // StarOff, // Removed unused icon
   Plus,
-  Eye,
+  // Eye, // Removed unused icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CATEGORIES, TEMPLATES, Template } from "@/lib/templates"; // Import from shared file
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { TemplatePreviewModal } from "@/components/ui/template-preview-modal";
 import { CustomTemplateModal } from "@/components/ui/custom-template-modal";
+import { TemplateCard } from "@/components/ui/template-card"; // Import the standardized card
 import React from 'react';
 
 export default function Templates() {
@@ -237,34 +238,32 @@ export default function Templates() {
         ) : filteredTemplates.length > 0 ? (
           filteredTemplates.map((template) => {
             const isFavorite = userTemplates.some(ut => ut.id === template.id && ut.favorite);
+            // Removed duplicate declaration below
             const isCustom = template.type === 'custom';
             const IconComponent = template.icon;
 
             return (
-              <div key={template.id} className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 relative">
-                {/* Indicators */}
-                {template.new && !isCustom && <span className="absolute top-4 right-4 bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">NEW</span>}
-                {template.premium && !isCustom && <span className="absolute top-4 right-4 bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-full">PRO</span>}
-                {isCustom && <span className="absolute top-4 right-4 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">CUSTOM</span>}
-
-                {/* Icon and Title */}
-                <div className="mb-4 flex items-center space-x-2">
-                  {IconComponent && <IconComponent className="h-5 w-5 text-indigo-500" />}
-                  <h3 className="text-lg font-medium text-gray-900">{template.title}</h3>
-                </div>
-                {/* Description */}
-                <p className="text-gray-600 mb-6 min-h-[3rem]">{template.description}</p>
-                {/* Actions */}
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2">
-                    <button className="text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center border border-gray-200 hover:bg-gray-50" onClick={() => handleTemplateSelect(template.id)}>Use Template</button>
-                    <button className="text-gray-700 px-2 py-2 rounded-md text-sm font-medium flex items-center border border-gray-200 hover:bg-gray-50" onClick={() => handlePreviewTemplate(template.id)} aria-label="Preview template"><Eye size={16} /></button>
-                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{template.tokens} token{template.tokens > 1 ? "s" : ""}</span>
-                  </div>
-                  <button className="text-gray-400 hover:text-indigo-500 focus:outline-none" onClick={() => toggleFavorite(template.id)} aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}>
-                    {isFavorite ? <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" /> : <StarOff className="h-5 w-5" />}
-                  </button>
-                </div>
+              // Use TemplateCard component, passing necessary props
+              // Wrap with a div to handle actions separately if needed
+              <div key={template.id} className="relative group"> 
+                 {/* Indicators - positioned relative to this wrapper */}
+                 {template.new && !isCustom && <span className="absolute top-2 right-2 z-10 bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">NEW</span>}
+                 {template.premium && !isCustom && <span className="absolute top-2 right-2 z-10 bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-full">PRO</span>}
+                 {isCustom && <span className="absolute top-2 right-2 z-10 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">CUSTOM</span>}
+                 
+                 <TemplateCard
+                   title={template.title}
+                   description={template.description}
+                   icon={IconComponent ? <IconComponent className="h-6 w-6 text-indigo-600" /> : undefined}
+                   onClick={() => handleTemplateSelect(template.id)} // Main click action is to select/use
+                   // Pass handlers and state for hover actions
+                   onPreviewClick={(e) => { e.stopPropagation(); handlePreviewTemplate(template.id); }}
+                   onFavoriteClick={(e) => { e.stopPropagation(); toggleFavorite(template.id); }}
+                   isFavorite={isFavorite}
+                   tokenCost={template.tokens}
+                   // isSelected prop is not relevant on this page, defaults to false
+                 />
+                 {/* Action buttons are now rendered inside TemplateCard on hover */}
               </div>
             );
           })

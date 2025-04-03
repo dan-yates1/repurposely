@@ -159,9 +159,9 @@ export function Sidebar() {
             <Home size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
             {!isCollapsed && <span className="text-sm font-medium">Dashboard</span>}
           </Link>
-          <Link href="/history" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/history')}`}>
+          <Link href="/my-content" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/my-content')}`}>
             <Clock size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
-            {!isCollapsed && <span className="text-sm font-medium">History</span>}
+            {!isCollapsed && <span className="text-sm font-medium">My Content</span>}
           </Link>
           {/* Removed Image History Link */}
           <Link href="/templates" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/templates')}`}>

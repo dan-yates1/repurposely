@@ -93,8 +93,8 @@ export default function ContactClient() {
                   <div className="ml-3">
                     <h3 className="text-lg font-medium text-gray-900">Email</h3>
                     <p className="mt-1 text-gray-600">
-                      <a href="mailto:support@repurposely.com" className="text-indigo-600 hover:text-indigo-800">
-                        support@repurposely.com
+                      <a href="mailto:contact@repurposelyapp.com" className="text-indigo-600 hover:text-indigo-800">
+                        contact@repurposelyapp.com
                       </a>
                     </p>
                     <p className="mt-1 text-sm text-gray-500">

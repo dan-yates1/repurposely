@@ -1,6 +1,6 @@
 "use client";
 
-import { TemplateSelectionCard } from '@/components/ui/template-selection-card';
+import { TemplateCard } from '@/components/ui/template-card'; // Changed import
 import { Template, CATEGORIES } from '@/lib/templates'; // Import shared definitions
 import React from 'react'; // Import React
 import { Search as SearchIcon } from 'lucide-react'; // Import Search icon
@@ -14,16 +14,18 @@ interface TemplateSelectionStepProps {
   selectedCategory: string;
   onCategoryChange: (categoryId: string) => void;
   filteredTemplates: Template[]; // Receive filtered templates
+  onPreviewTemplate: (templateId: string) => void; // Add prop for preview handler
 }
 
-export function TemplateSelectionStep({ 
+export function TemplateSelectionStep({
   selectedTemplate, 
   onTemplateSelect,
   searchQuery,
   onSearchChange,
   selectedCategory,
   onCategoryChange,
-  filteredTemplates // Use filtered templates from props
+  filteredTemplates, // Use filtered templates from props
+  onPreviewTemplate // Destructure the new prop
 }: TemplateSelectionStepProps) {
 
   // Remove internal grouping logic - filtering is now done in parent
@@ -88,13 +90,18 @@ export function TemplateSelectionStep({
             .map((template) => {
               const IconComponent = template.icon; 
               return (
-                <TemplateSelectionCard
+                <TemplateCard // Changed component usage
                   key={template.id}
                   title={template.title}
                   description={template.description}
-                  icon={IconComponent ? <IconComponent className="h-6 w-6 text-indigo-600" /> : undefined} 
-                  onClick={() => onTemplateSelect(template.id)} 
+                  icon={IconComponent ? <IconComponent className="h-6 w-6 text-indigo-600" /> : undefined}
+                  onClick={() => onTemplateSelect(template.id)}
                   isSelected={selectedTemplate === template.id}
+                  // Pass the preview handler to the card, ensuring event propagation is stopped
+                  onPreviewClick={(e) => { 
+                    e.stopPropagation(); // Prevent card's main onClick from firing
+                    onPreviewTemplate(template.id); 
+                  }}
                 />
               );
             })

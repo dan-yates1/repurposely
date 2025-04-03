@@ -77,8 +77,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="mailto:support@repurposely.com" className="text-base text-gray-600 hover:text-indigo-600">
-                  support@repurposely.com
+                <a href="mailto:contact@repurposelyapp.com" className="text-base text-gray-600 hover:text-indigo-600">
+                  contact@repurposelyapp.com
                 </a>
               </li>
             </ul>
