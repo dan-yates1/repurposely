@@ -1,0 +1,10 @@
+# Allow all user agents to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow specific paths if needed (e.g., admin areas, API routes)
+# Disallow: /admin/
+# Disallow: /api/
+
+# Point to the sitemap file
+Sitemap: ${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/sitemap.xml

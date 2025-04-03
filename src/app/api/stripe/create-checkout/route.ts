@@ -1,135 +1,130 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { stripe } from "@/lib/stripe-server";
-import { createAdminClient } from "@/lib/supabase-admin"; // Import admin client
+import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { stripe } from '@/lib/stripe-server'; // Uses server-side keys (should be LIVE in prod)
+import { createAdminClient } from '@/lib/supabase-admin'; // For updating user metadata
+import Stripe from 'stripe'; // Import Stripe namespace
+import type { NextRequest } from 'next/server'; // Import NextRequest
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) { // Use NextRequest
+  const supabase = createRouteHandlerClient({ cookies: cookies });
+  const supabaseAdmin = createAdminClient(); // Needed to update user metadata
+  let session = null; // Initialize session variable
+  let userId : string | null = null; // Initialize userId
+
   try {
-    // Get the request body
-    const { priceId, planName } = await req.json();
-
-    if (!priceId) {
-      return NextResponse.json(
-        { error: "Price ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Get the authorization header
-    const authHeader = req.headers.get('authorization');
+    // 1. Authenticate user (Prioritize Header, then Cookie)
+    const authHeader = request.headers.get('authorization');
+    console.log("Create Checkout: Auth Header Received:", authHeader ? 'Present' : 'Missing'); // Log header presence
     
-    // Get the user session from Supabase
-    // Fix the cookies issue by using the correct method
-    const supabase = createRouteHandlerClient({ cookies });
-    
-    let session;
-    
-    // Try to get session from cookies first
-    const { data: cookieSession } = await supabase.auth.getSession();
-    
-    if (cookieSession.session) {
-      session = cookieSession.session;
-    } 
-    // If no cookie session but we have an auth header, try to use that
-    else if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      const { data: tokenData, error: tokenError } = await supabase.auth.getUser(token);
-      
-      if (tokenError || !tokenData.user) {
-        return NextResponse.json(
-          { error: "Invalid authentication token" },
-          { status: 401 }
-        );
+      console.log("Create Checkout: Attempting validation with Bearer token:", token ? token.substring(0, 10) + '...' : 'null'); 
+      const { data: { user: tokenUser }, error: userError } = await supabase.auth.getUser(token);
+      if (userError) {
+         console.error("Create Checkout: Error validating token:", userError.message);
+      } else if (tokenUser) {
+         userId = tokenUser.id;
+         // Reconstruct a basic session object if needed later
+         session = { user: tokenUser, access_token: token }; 
+         console.log("Create Checkout: Authenticated via Authorization header.");
       }
-      
-      // We have a valid user from the token
-      session = {
-        user: tokenData.user,
-        access_token: token
-      };
     }
 
-    if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please log in" },
-        { status: 401 }
-      );
+    // If no user ID from header, try cookie session
+    if (!userId) {
+       console.log("Create Checkout: No valid token in header, trying cookie session...");
+       const { data: cookieSessionData } = await supabase.auth.getSession();
+       if (cookieSessionData?.session?.user) {
+          session = cookieSessionData.session; // Store full session if found via cookie
+          userId = session.user.id;
+          console.log("Create Checkout: Authenticated via cookie session.");
+       }
+    }
+    
+    // Final check if user ID was obtained
+    if (!userId || !session) { // Also check if session object exists
+      console.log("Create Checkout: No valid session or token found.");
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    const userEmail = session.user.email;
-    const userMetadata = session.user.user_metadata;
+    // Now we have userId and session object
+    const user = session.user;
+    const userEmail = user.email;
+    let stripeCustomerId = user.user_metadata?.stripe_customer_id;
 
-    // Get Stripe customer ID from user metadata
-    let customerId = userMetadata?.stripe_customer_id;
-    console.log("Retrieved stripe_customer_id from metadata:", customerId);
+    console.log(`Checkout request for user: ${user.id}, Email: ${userEmail}, Existing Stripe ID: ${stripeCustomerId}`);
 
-    // If no customer exists in metadata, create one in Stripe and update metadata
-    if (!customerId) {
-      if (!userEmail) {
-        console.error("User email not found for creating Stripe customer. User ID:", userId);
-        return NextResponse.json(
-          { error: "User email not found, cannot create Stripe customer." },
-          { status: 400 }
-        );
+    // 2. Validate or Create Stripe Customer ID for the current mode (Live/Test)
+    if (stripeCustomerId) {
+      try {
+        await stripe.customers.retrieve(stripeCustomerId);
+        console.log(`Existing Stripe customer ${stripeCustomerId} found in current mode.`);
+      } catch (error: unknown) { 
+        const stripeError = error as Stripe.StripeRawError; 
+        if (stripeError?.code === 'resource_missing') {
+          console.warn(`Stripe customer ${stripeCustomerId} not found in current mode (likely a Test ID in Live mode). Creating a new customer.`);
+          stripeCustomerId = null; 
+        } else {
+          throw error;
+        }
       }
-      
-      console.log("No Stripe customer ID found in metadata, creating new Stripe customer for email:", userEmail);
+    }
+
+    // If no valid customer ID exists for the current mode, create one
+    if (!stripeCustomerId) {
+      console.log(`Creating new Stripe customer for email: ${userEmail}`);
       const customer = await stripe.customers.create({
         email: userEmail,
-        metadata: {
-          userId: userId, // Link Stripe customer to Supabase user ID
-        },
+        metadata: { userId: user.id },
       });
-      customerId = customer.id;
-      console.log("Created new Stripe customer:", customerId);
+      stripeCustomerId = customer.id;
+      console.log(`Created new Stripe customer: ${stripeCustomerId}`);
 
-      // Update user metadata in Supabase Auth using Admin client
-      const supabaseAdmin = createAdminClient();
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-        userId,
-        { user_metadata: { ...userMetadata, stripe_customer_id: customerId } }
+        user.id,
+        { user_metadata: { ...user.user_metadata, stripe_customer_id: stripeCustomerId } }
       );
 
       if (updateError) {
-        console.error("Failed to update user metadata with Stripe customer ID:", updateError);
-        // Proceeding anyway, but log the error. Checkout might still work.
-        // Consider if this should be a hard failure depending on requirements.
+        console.error('Error updating user metadata with Stripe customer ID:', updateError);
       } else {
-        console.log("Successfully updated user metadata with Stripe customer ID:", customerId);
+         console.log(`Successfully updated user metadata with Stripe customer ID: ${stripeCustomerId}`);
       }
-      
-      // --- Removed incorrect upsert to user_subscriptions here ---
     }
 
-    // Create a checkout session
+    // 3. Get Price ID and Plan Name from request body
+    const { priceId, planName } = await request.json();
+    if (!priceId || !planName) {
+      return NextResponse.json({ error: 'Missing priceId or planName' }, { status: 400 });
+    }
+
+    // 4. Create Stripe Checkout Session
+    const successUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?checkout=success`;
+    const cancelUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?checkout=cancelled`;
+
+    console.log(`Creating checkout session for Price ID: ${priceId}, Customer: ${stripeCustomerId}`);
+
     const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL}/dashboard?checkout=success`,
-      cancel_url: `${req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL}/pricing?checkout=canceled`,
-      subscription_data: {
-        metadata: {
-          userId: userId,
-          planName: planName || "pro", // Default to pro if not specified
-        },
-      },
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'subscription', 
+      customer: stripeCustomerId, 
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: { userId: user.id, planName: planName },
     });
 
+    if (!checkoutSession.url) {
+      throw new Error('Could not create Stripe Checkout session.');
+    }
+
+    // 5. Return the Checkout Session URL
     return NextResponse.json({ checkoutUrl: checkoutSession.url });
+
   } catch (error) {
-    console.error("Error creating checkout session:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    console.error('Error creating checkout session:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'; 
+    return NextResponse.json({ error: `Failed to create checkout session: ${errorMessage}` }, { status: 500 });
   }
 }
