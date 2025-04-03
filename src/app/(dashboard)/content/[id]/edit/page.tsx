@@ -76,7 +76,7 @@ export default function EditContentPage() {
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [contentId, router]); // Removed fetchContent from dependencies
 
   useEffect(() => {

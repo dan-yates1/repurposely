@@ -106,7 +106,7 @@ export default function Create() {
         console.warn(`Template ID "${templateIdFromQuery}" from query param not found.`);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [searchParams, customTemplates]); // Depend on customTemplates as well
 
   // Load custom templates from localStorage
