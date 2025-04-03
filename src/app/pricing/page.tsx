@@ -13,16 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 
 type BillingPeriod = "monthly" | "annual";
 
-// Define price details - Updated Pro & Enterprise prices to match Stripe screenshots
-const prices = {
-  monthly: {
-    pro: { id: "price_1R8kax05YRh3Yy7QhfHgWCQu", amount: 9.99 },
-    enterprise: { id: "price_1R8kax05YRh3Yy7Qu1wyV6BG", amount: 29.99 }, // Updated Enterprise monthly
-  },
-  annual: {
-    pro: { id: "price_1R9AOl05YRh3Yy7QebELm5jn", amount: 99 },
-    enterprise: { id: "price_1R9AQ505YRh3Yy7QG3qZ8lZe", amount: 280 }, // Updated Enterprise annual
-  },
+// Define plan amounts (IDs will come from env vars)
+const planAmounts = {
+  monthly: { pro: 9.99, enterprise: 29.99 },
+  annual: { pro: 99, enterprise: 280 },
 };
 
 // Create a client component that uses useSearchParams
@@ -241,7 +235,7 @@ function PricingContent() {
                 </h3>
                 <div className="flex items-baseline mb-2">
                   <span className="text-5xl font-bold text-indigo-600">
-                    ${billingPeriod === "monthly" ? prices.monthly.pro.amount : Math.round(prices.annual.pro.amount / 12)}
+                    ${billingPeriod === "monthly" ? planAmounts.monthly.pro : Math.round(planAmounts.annual.pro / 12)}
                   </span>
                   <span className="text-gray-500 ml-2">
                     /month{billingPeriod === "annual" ? " (billed annually)" : ""}
@@ -249,7 +243,7 @@ function PricingContent() {
                 </div>
                 {billingPeriod === "annual" && (
                   <p className="text-sm text-gray-500 mb-2">
-                    Total ${prices.annual.pro.amount}/year
+                    Total ${planAmounts.annual.pro}/year 
                   </p>
                 )}
                 <p className="text-gray-600 mb-8">
@@ -322,7 +316,11 @@ function PricingContent() {
                 </ul>
 
                 <CheckoutButton
-                  priceId={billingPeriod === "monthly" ? prices.monthly.pro.id : prices.annual.pro.id}
+                  // Use environment variables for Price IDs
+                  priceId={billingPeriod === "monthly" 
+                    ? process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID! 
+                    : process.env.NEXT_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID!
+                  }
                   planName="PRO"
                   className="w-full py-3 text-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
                 >
@@ -339,7 +337,7 @@ function PricingContent() {
                 </h3>
                 <div className="flex items-baseline mb-2">
                    <span className="text-5xl font-bold text-indigo-600">
-                    ${billingPeriod === "monthly" ? prices.monthly.enterprise.amount : Math.round(prices.annual.enterprise.amount / 12)}
+                    ${billingPeriod === "monthly" ? planAmounts.monthly.enterprise : Math.round(planAmounts.annual.enterprise / 12)}
                   </span>
                   <span className="text-gray-500 ml-2">
                     /month{billingPeriod === "annual" ? " (billed annually)" : ""}
@@ -347,7 +345,7 @@ function PricingContent() {
                 </div>
                  {billingPeriod === "annual" && (
                   <p className="text-sm text-gray-500 mb-2">
-                    Total ${prices.annual.enterprise.amount}/year
+                    Total ${planAmounts.annual.enterprise}/year 
                   </p>
                 )}
                 <p className="text-gray-600 mb-8">
