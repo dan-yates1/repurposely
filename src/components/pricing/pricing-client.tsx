@@ -418,15 +418,17 @@ export default function PricingClient() {
                     </span>
                   </li>
                 </ul>
-                {/* Changed CheckoutButton to a Link for Enterprise */}
-                <Link href="/contact">
-                   <Button
-                     variant="primary" // Use primary variant for consistency
-                     className="w-full py-3 text-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
-                   >
-                     Contact Sales
-                   </Button>
-                </Link>
+                {/* Use CheckoutButton for Enterprise */}
+                <CheckoutButton
+                  priceId={billingPeriod === "monthly"
+                    ? process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_MONTHLY_PRICE_ID!
+                    : process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_ANNUAL_PRICE_ID!
+                  }
+                  planName="ENTERPRISE"
+                  className="w-full py-3 text-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+                >
+                  Upgrade to Enterprise
+                </CheckoutButton>
               </div>
             </div>
           </div>
@@ -616,16 +618,15 @@ export default function PricingClient() {
                 Start for Free
               </Button>
             </Link>
-            {/* Changed CTA link for Enterprise/Contact Sales */}
-            <Link href="/contact">
-              <Button
+            {/* Changed CTA link for Enterprise */}
+            <CheckoutButton
+                priceId={process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_MONTHLY_PRICE_ID!} // Defaulting to monthly for CTA, adjust if needed
+                planName="ENTERPRISE"
                 variant="outline"
-                size="lg"
                 className="px-8 py-4 text-white border-white hover:bg-white/10 font-semibold"
               >
-                Contact Sales
-              </Button>
-            </Link>
+                Upgrade to Enterprise
+              </CheckoutButton>
           </div>
         </div>
       </section>
