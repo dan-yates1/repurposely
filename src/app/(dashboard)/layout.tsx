@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/ui/logo";
 import { MobileNav } from "@/components/ui/mobile-nav";
+import { TokenProvider } from "@/context/TokenContext"; // Import the provider
 
 export default function DashboardLayout({
   children,
@@ -39,12 +40,15 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 overflow-auto">
-        {children}
+    // Wrap the layout content with TokenProvider
+    <TokenProvider> 
+      <div className="flex flex-col md:flex-row h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
+        <MobileNav />
       </div>
-      <MobileNav />
-    </div>
+    </TokenProvider>
   );
 }

@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from 'next/navigation';
 import toast, { Toaster } from "react-hot-toast";
 import {
+  Coins,
   Loader2,
-  Sparkles,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useTokens } from "@/hooks/useTokens";
@@ -25,7 +25,14 @@ import React from 'react'; // Import React
 export default function Create() {
   usePageTitle("Create New Content");
   const searchParams = useSearchParams();
-  const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
+  // Destructure fetch functions from useTokens
+  const { 
+    canPerformOperation, 
+    recordTokenTransaction, 
+    tokenUsage, 
+    fetchTokenUsage, // Add this
+    fetchTransactionHistory // Add this
+  } = useTokens(); 
   const { user } = useUser();
 
   // Step management
@@ -233,7 +240,15 @@ export default function Create() {
       setGeneratedImageUrl(data.generatedImageUrl || null);
       setImageError(data.imageError || null);
       if (userId) {
+         // Always record text repurpose cost
          await recordTokenTransaction("TEXT_REPURPOSE" as OperationType);
+         // Conditionally record image generation cost if successful
+         if (data.generatedImageUrl && !data.imageError) {
+           await recordTokenTransaction("IMAGE_GENERATION" as OperationType); // Assuming this type exists
+         }
+         // Explicitly refresh token usage state AFTER transactions
+         await fetchTokenUsage(); // Now defined
+         await fetchTransactionHistory(); // Now defined
       }
       toast.success("Content generated successfully!");
       if (data.imageError) toast.error(`Image generation failed: ${data.imageError}`, { duration: 5000 });
@@ -375,11 +390,11 @@ export default function Create() {
           Create New Content
         </h1>
 
-        {/* Token usage indicator */}
+        {/* Token usage indicator - Changed icon */}
         <div className="flex items-center bg-indigo-50 px-3 py-1.5 rounded-md">
-          <Sparkles className="h-4 w-4 text-indigo-500 mr-1.5" />
+          <Coins className="h-4 w-4 text-indigo-500 mr-1.5" /> {/* Changed Sparkles to Coins */}
           <span className="text-sm font-medium text-indigo-700">
-            {tokenUsage?.tokensRemaining || 0} tokens remaining
+            {tokenUsage?.tokensRemaining ?? 0} tokens remaining {/* Use nullish coalescing */}
           </span>
         </div>
       </div>
