@@ -4,18 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import toast, { Toaster } from "react-hot-toast";
-import { Twitter, BookOpen, Mail, Video, Sparkles, CreditCard } from "lucide-react";
+import { Sparkles, CreditCard } from "lucide-react"; // Keep used icons
 import { Search } from "@/components/ui/search";
 import { Button } from "@/components/ui/button";
 import { Tabs } from "@/components/ui/tabs";
 import { ContentCard } from "@/components/ui/content-card";
 import { TemplateCard } from "@/components/ui/template-card";
-// import { AnalyticsCard } from "@/components/ui/analytics-card"; // Removed
 import { usePageTitle } from "@/hooks/usePageTitle";
-// import { AnalyticsMetricCard } from "@/components/ui/analytics-metric-card"; // Removed
 import { TokenUsageCard } from "@/components/ui/token-usage-card";
-import { UpgradeButton } from "@/components/ui/upgrade-button";
-import { STRIPE_PRICE_IDS } from "@/lib/stripe";
+import Link from "next/link";
+import { TEMPLATES, Template } from "@/lib/templates"; // Import TEMPLATES and Template type
 
 // Define types for content history items
 interface ContentHistoryItem {
@@ -36,9 +34,11 @@ export default function Dashboard() {
   const router = useRouter();
   usePageTitle("Dashboard");
   const [contentHistory, setContentHistory] = useState<ContentHistoryItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // For content history
   const [activeTab, setActiveTab] = useState("all");
   const [isFreeTier, setIsFreeTier] = useState(true);
+  const [frequentTemplates, setFrequentTemplates] = useState<Template[]>([]); // State for frequent templates
+  const [frequentTemplatesLoading, setFrequentTemplatesLoading] = useState(true); // Loading state
 
   // Define the fetchContentHistory function before useEffect
   const fetchContentHistory = async (userId: string) => {
@@ -54,7 +54,7 @@ export default function Dashboard() {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(6); // Limit to 6 for dashboard display
 
       if (error) {
         throw error;
@@ -72,95 +72,104 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Get user data
-    const getUserData = async () => {
+    // Get user data and related info
+    const getUserDataAndRelated = async () => {
+      setLoading(true); // Combined loading state initially
+      setFrequentTemplatesLoading(true);
       try {
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
-          await fetchContentHistory(userData.user.id);
+          const userId = userData.user.id;
           
-          // Fetch subscription data
-          const { data: subData, error: subError } = await supabase
-            .from("user_subscriptions")
-            .select("subscription_tier, is_active")
-            .eq("user_id", userData.user.id)
-            .single();
-            
-          if (subError) {
-            console.error("Error fetching subscription:", subError);
-          }
-          
-          if (subData) {
-            // Log subscription data for debugging
-            console.log("Dashboard - User subscription data:", subData);
-            
-            // Check if user has an active paid plan
-            const tier = (subData.subscription_tier || '').toUpperCase();
-            // const isActive = subData.is_active !== false; // We don't need is_active for this specific check
-            
-            const isPaidTier = tier === 'PRO' || tier === 'ENTERPRISE';
-            // Show upgrade banner ONLY if the tier is NOT paid (i.e., it's FREE or null/undefined)
-            const showUpgrade = !isPaidTier; 
-            
-            console.log(`Dashboard - User has ${tier} plan, showing upgrade section: ${showUpgrade}`);
-            setIsFreeTier(showUpgrade); // Set state based on whether the tier is paid
-            
-            // Force a refresh of the token usage data to ensure it's up to date
-            try {
-              const { data: tokenData } = await supabase
-                .from("token_usage")
-                .select("tokens_used, tokens_remaining")
-                .eq("user_id", userData.user.id)
-                .order("created_at", { ascending: false })
-                .limit(1)
-                .single();
+          // Fetch history and subscription/tokens in parallel
+          await Promise.all([
+            fetchContentHistory(userId),
+            (async () => {
+              // Fetch subscription data
+              const { data: subData, error: subError } = await supabase
+                .from("user_subscriptions")
+                .select("subscription_tier, is_active")
+                .eq("user_id", userId)
+                .maybeSingle(); // Use maybeSingle to handle no subscription case gracefully
                 
-              console.log("Dashboard - Token usage data:", tokenData);
-            } catch (tokenError) {
-              console.error("Error fetching token usage:", tokenError);
-            }
-          } else {
-            console.log("Dashboard - No subscription data found, assuming free tier");
-            setIsFreeTier(true);
-          }
+              if (subError) {
+                console.error("Error fetching subscription:", subError);
+                // Assume free tier if error occurs
+                setIsFreeTier(true); 
+              } else if (subData) {
+                const tier = (subData.subscription_tier || 'FREE').toUpperCase();
+                const isPaidTier = tier === 'PRO' || tier === 'ENTERPRISE';
+                setIsFreeTier(!isPaidTier);
+                console.log(`Dashboard - User has ${tier} plan, isFreeTier: ${!isPaidTier}`);
+              } else {
+                console.log("Dashboard - No subscription data found, assuming free tier");
+                setIsFreeTier(true);
+              }
+            })(),
+            (async () => {
+               // Fetch frequent templates
+               try {
+                  console.log("Attempting to fetch frequent templates..."); // Log start
+                  // Get session token for auth header
+                  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                  if (sessionError || !sessionData.session) {
+                     throw new Error('User session not found for frequent templates fetch.');
+                  }
+                  const accessToken = sessionData.session.access_token;
+
+                  const freqResponse = await fetch('/api/templates/frequent', {
+                     headers: { 'Authorization': `Bearer ${accessToken}` } 
+                  });
+                  console.log(`Frequent templates API response status: ${freqResponse.status}`); // Log status
+                  if (!freqResponse.ok) {
+                     const errorData = await freqResponse.json().catch(() => ({ error: 'Failed to parse error JSON' })); // Catch JSON parse error
+                     throw new Error(errorData.error || `Failed to fetch frequent templates (${freqResponse.status})`);
+                  }
+                  const frequentData: { template_id: string }[] = await freqResponse.json();
+                  console.log("Fetched frequent data:", frequentData); // Log fetched data
+                  const frequentTemplateIds = frequentData.map(item => item.template_id);
+                  console.log("Extracted frequent IDs:", frequentTemplateIds); // Log extracted IDs
+                  
+                  const mappedTemplates = frequentTemplateIds
+                    .map(id => TEMPLATES.find(t => t.id === id))
+                    .filter((t): t is Template => t !== undefined); 
+                  console.log("Mapped frequent templates:", mappedTemplates.map(t => t.id)); // Log mapped IDs
+
+                  if (mappedTemplates.length > 0) {
+                     console.log("Setting frequent templates state with mapped templates."); // Log state set
+                     setFrequentTemplates(mappedTemplates);
+                  } else {
+                     console.log("No frequent templates found or mapped, using fallback."); // Log fallback reason
+                     setFrequentTemplates(TEMPLATES.slice(0, 4)); 
+                  }
+               } catch (freqError) {
+                  console.error("Error fetching/processing frequent templates:", freqError); // Log error
+                  console.log("Error occurred, using fallback templates."); // Log fallback reason
+                  setFrequentTemplates(TEMPLATES.slice(0, 4)); 
+               } finally {
+                  setFrequentTemplatesLoading(false);
+                  console.log("Finished fetching frequent templates."); // Log end
+               }
+            })()
+          ]);
+
+        } else {
+           // Handle case where user is not logged in
+           console.log("Dashboard: No user session found.");
+           setLoading(false);
+           setFrequentTemplatesLoading(false);
+           setFrequentTemplates(TEMPLATES.slice(0, 4)); // Show defaults
         }
       } catch (error) {
         console.error("Error getting user data:", error);
+        setLoading(false); 
+        setFrequentTemplatesLoading(false);
+        setFrequentTemplates(TEMPLATES.slice(0, 4)); // Show defaults on error
       }
     };
 
-    getUserData();
-  }, []);
-
-  // Removed Sample analytics data
-
-  // Mock templates data
-  const templates = [
-    {
-      id: "twitter-post",
-      title: "Twitter Thread",
-      description: "Create engaging Twitter threads",
-      icon: <Twitter className="h-5 w-5" />,
-    },
-    {
-      id: "blog-post",
-      title: "Blog Article",
-      description: "Create SEO-optimized blog content",
-      icon: <BookOpen className="h-5 w-5" />,
-    },
-    {
-      id: "email-newsletter",
-      title: "Email Newsletter",
-      description: "Create compelling email content",
-      icon: <Mail className="h-5 w-5" />,
-    },
-    {
-      id: "video-script",
-      title: "Video Script",
-      description: "Create scripts for video content",
-      icon: <Video className="h-5 w-5" />,
-    },
-  ];
+    getUserDataAndRelated();
+  }, []); // Empty dependency array ensures this runs once on mount
 
   // Function to redirect to content creation with template
   const handleTemplateClick = (templateId: string) => {
@@ -215,22 +224,14 @@ export default function Dashboard() {
               </ul>
             </div>
             <div className="flex flex-col md:flex-row gap-4">
-              <UpgradeButton
-                priceId={STRIPE_PRICE_IDS.PRO}
-                planName="pro"
+              <Link href="/pricing">
+              <Button
                 variant="primary"
                 size="lg"
               >
                 Upgrade to Pro
-              </UpgradeButton>
-              <UpgradeButton
-                priceId={STRIPE_PRICE_IDS.ENTERPRISE}
-                planName="enterprise"
-                variant="outline"
-                size="lg"
-              >
-                Enterprise Plan
-              </UpgradeButton>
+              </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -251,7 +252,6 @@ export default function Dashboard() {
         <Tabs
           tabs={[
             { id: "all", label: "All Content" },
-            // { id: "analytics", label: "Analytics" }, // Removed
             { id: "templates", label: "Templates" },
           ]}
           defaultTabId="all"
@@ -283,7 +283,7 @@ export default function Dashboard() {
                   </div>
                 ))
             ) : contentHistory.length > 0 ? (
-              contentHistory.slice(0, 6).map((item) => (
+              contentHistory.map((item) => (
                 <ContentCard
                   key={item.id}
                   id={item.id}
@@ -321,43 +321,53 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Quick Templates Section */}
+          {/* Frequent Templates Section */}
           <div className="mb-12">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Quick Create
+              Recently Used Templates 
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {templates.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  title={template.title}
-                  description={template.description}
-                  icon={template.icon}
-                  onClick={() => handleTemplateClick(template.id)}
-                />
-              ))}
+              {frequentTemplatesLoading ? (
+                 // Skeletons for frequent templates
+                 Array(4).fill(0).map((_, i) => (
+                   <div key={i} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-pulse">
+                     <div className="h-6 w-6 bg-gray-200 rounded mb-3"></div>
+                     <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                     <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
+                     <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                   </div>
+                 ))
+              ) : (
+                frequentTemplates.map((template: Template) => ( // Add type
+                  <TemplateCard
+                    key={template.id}
+                    title={template.title}
+                    description={template.description}
+                    // Render the icon component
+                    icon={template.icon ? <template.icon className="h-5 w-5" /> : null} 
+                    onClick={() => handleTemplateClick(template.id)}
+                  />
+                )) 
+              )}
             </div>
           </div>
-
-          {/* Removed Analytics Summary Section */}
-          
         </div>
       )}
-
-      {/* Removed Analytics Tab Content */}
       
       {/* Templates Tab */}
       {activeTab === "templates" && (
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map((template) => (
+            {/* Use imported TEMPLATES array and add type */}
+            {TEMPLATES.map((template: Template) => ( 
               <TemplateCard
                 key={template.id}
                 title={template.title}
                 description={template.description}
-                icon={template.icon}
+                 // Render the icon component
+                icon={template.icon ? <template.icon className="h-5 w-5" /> : null}
                 onClick={() => handleTemplateClick(template.id)}
-              />
+              /> 
             ))}
           </div>
         </div>

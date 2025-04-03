@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react"; // Removed unused useEffect, useCallback
-// import Link from "next/link"; // Removed unused import
+import { useState, useEffect } from "react"; // Added useEffect
+import { useSearchParams } from 'next/navigation'; // Added useSearchParams
 import toast, { Toaster } from "react-hot-toast";
 import {
   Loader2,
@@ -11,7 +11,7 @@ import { useUser } from "@/hooks/useUser"; // Import useUser
 import { useTokens } from "@/hooks/useTokens";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { OperationType } from "@/lib/token-service";
-// Removed ContentAnalysisService and ContentQualityMetrics imports
+import { TEMPLATES } from "@/lib/templates"; // Added TEMPLATES import
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"; 
 import { CreationSteps } from "@/components/ui/creation-steps";
 import { TemplateSelectionStep } from "@/components/ui/template-selection-step";
@@ -24,6 +24,7 @@ import { ResultsStep } from "@/components/ui/results-step";
 export default function Create() {
   // Page title
   usePageTitle("Create New Content");
+  const searchParams = useSearchParams(); // Initialize searchParams
   
   // Step management
   const [currentStep, setCurrentStep] = useState(0);
@@ -53,7 +54,25 @@ export default function Create() {
   
   // Token management
   const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
-  const { user } = useUser(); // Get user object
+  const { user } = useUser(); 
+
+  // Effect to handle pre-selection from query parameter
+  useEffect(() => {
+    const templateIdFromQuery = searchParams.get('template');
+    if (templateIdFromQuery) {
+      // Check if the template ID exists in our TEMPLATES array
+      const templateExists = TEMPLATES.some(t => t.id === templateIdFromQuery);
+      if (templateExists) {
+        console.log(`Pre-selecting template: ${templateIdFromQuery}`);
+        setSelectedTemplate(templateIdFromQuery);
+        setCurrentStep(1); // Skip to the next step (Content Input)
+      } else {
+        console.warn(`Template ID "${templateIdFromQuery}" from query param not found.`);
+        // Optional: Show a toast message?
+        // toast.error(`Invalid template specified.`);
+      }
+    }
+  }, [searchParams]); // Run only when searchParams changes (usually on initial load)
 
   // Image Generation State
   const [generateImage, setGenerateImage] = useState(false); // Flag to control image generation

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { Loader2, Image as ImageIcon, Download, Sparkles, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
-// Remove direct service import, reuse types
-import { ImageSize, ImageStyle, GeneratedImage } from '@/lib/image-generation-service'; 
+// Corrected type import
+import { ImageSize, ImageStyle, GeneratedImageData } from '@/lib/image-generation-service'; 
 import { useTokens } from '@/hooks/useTokens';
 import { useUser } from '@/hooks/useUser'; // Import useUser hook
 
@@ -14,15 +14,21 @@ interface ImageGeneratorProps {
   onImageGenerated?: (imageUrl: string) => void;
 }
 
+// Define a type for the state, which might be slightly different from GeneratedImageData
+// (e.g., it needs 'url' which GeneratedImageData doesn't have, but the API returns)
+interface GeneratedImageState extends Omit<GeneratedImageData, 'b64_json'> {
+  url: string; // Add the URL field expected by the component state
+}
+
+
 export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorProps) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<GeneratedImage | null>(null);
-  // Update default size to a valid DALL-E 3 option
+  const [generatedImage, setGeneratedImage] = useState<GeneratedImageState | null>(null); // Use the new state type
   const [imageSize, setImageSize] = useState<ImageSize>('1024x1024'); 
-  const [imageStyle, setImageStyle] = useState<ImageStyle>('natural'); // Default style is fine
+  const [imageStyle, setImageStyle] = useState<ImageStyle>('natural'); 
   const { canPerformOperation, recordTokenTransaction, tokenUsage } = useTokens();
-  const { user } = useUser(); // Get user info
+  const { user } = useUser(); 
   
   const handleGenerateImage = async () => {
     if (!prompt.trim()) {
@@ -30,14 +36,13 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
       return;
     }
     
-    // Check if user has enough tokens
     if (!canPerformOperation('IMAGE_GENERATION')) {
       toast.error('You do not have enough tokens for image generation. Please upgrade your plan or wait for your tokens to reset.');
       return;
     }
     
     setIsGenerating(true);
-    setGeneratedImage(null); // Clear previous image while generating
+    setGeneratedImage(null); 
 
     try {
       const response = await fetch('/api/generate-image', {
@@ -49,7 +54,7 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
           prompt: prompt,
           size: imageSize,
           style: imageStyle,
-          userId: user?.id, // Pass the user ID
+          userId: user?.id, 
           contentId: contentId,
         }),
       });
@@ -60,13 +65,22 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
         throw new Error(result.error || 'Failed to generate image');
       }
       
-      // Assuming the API returns the GeneratedImage structure
-      setGeneratedImage(result as GeneratedImage); 
+      // Assuming the API returns an object with url, prompt, revised_prompt, size, style
+      if (!result.url) {
+         throw new Error('API did not return an image URL.');
+      }
       
-      // Record token usage *after* successful generation
+      // Set state using the new interface, mapping API response fields
+      setGeneratedImage({
+         url: result.url,
+         prompt: result.prompt || prompt, // Use original prompt if API doesn't return it
+         revised_prompt: result.revised_prompt,
+         size: result.size || imageSize, // Use original size if API doesn't return it
+         style: result.style || imageStyle, // Use original style if API doesn't return it
+      }); 
+      
       await recordTokenTransaction('IMAGE_GENERATION', contentId);
       
-      // Call the callback if provided
       if (onImageGenerated && result.url) {
         onImageGenerated(result.url);
       }
@@ -82,12 +96,15 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
   };
   
   const handleDownloadImage = () => {
-    if (!generatedImage) return;
+    if (!generatedImage?.url) return; // Check if URL exists
     
-    // Create a temporary link element
     const link = document.createElement('a');
     link.href = generatedImage.url;
-    link.download = `repurposely-image-${Date.now()}.jpg`;
+    // Try to derive a better filename if possible, otherwise use timestamp
+    const filename = generatedImage.prompt ? 
+      `repurposely-${generatedImage.prompt.substring(0, 20).replace(/\s+/g, '_')}.png` : 
+      `repurposely-image-${Date.now()}.png`;
+    link.download = filename; 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -133,7 +150,6 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             className="w-full p-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             disabled={isGenerating}
           >
-            {/* DALL-E 3 Sizes */}
             <option value="1024x1024">Standard Square (1024x1024)</option>
             <option value="1024x1792">Tall Portrait (1024x1792)</option>
             <option value="1792x1024">Wide Landscape (1792x1024)</option>
@@ -151,7 +167,6 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none text-gray-700 focus:ring-2 focus:ring-indigo-500"
             disabled={isGenerating}
           >
-            {/* DALL-E 3 Styles */}
             <option value="natural">Natural</option>
             <option value="vivid">Vivid</option>
           </select>
@@ -210,11 +225,10 @@ export function ImageGenerator({ contentId, onImageGenerated }: ImageGeneratorPr
             ) : (
               <Image 
                 src={generatedImage.url} 
-                alt={generatedImage.revised_prompt || generatedImage.prompt} // Use revised prompt for alt if available
-                // Use fixed dimensions based on DALL-E 3 sizes for layout consistency
+                alt={generatedImage.revised_prompt || generatedImage.prompt} 
                 width={1024} 
-                height={1024} // Default to square aspect ratio for layout
-                className="w-full h-auto object-contain rounded-lg" // Use object-contain to see full image
+                height={1024} 
+                className="w-full h-auto object-contain rounded-lg" 
               />
             )}
           </div>

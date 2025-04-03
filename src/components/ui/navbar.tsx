@@ -61,7 +61,7 @@ export function Navbar() {
         aria-haspopup="true"
         aria-controls="user-menu-items"
       >
-        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white overflow-hidden border-2 border-transparent hover:bg-indigo-700">
+        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white overflow-hidden hover:bg-indigo-700">
           {user?.user_metadata?.avatar_url ? (
             <Image src={user.user_metadata.avatar_url} alt="User avatar" width={32} height={32} className="w-full h-full object-cover"/>
           ) : (

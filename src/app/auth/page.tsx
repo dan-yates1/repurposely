@@ -4,13 +4,15 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image'; // Import Image
 import { Logo } from '@/components/ui/logo';
 import { Navbar } from '@/components/ui/navbar'; 
-import { Button } from '@/components/ui/button'; // Import Button
-import { Input } from '@/components/ui/input';   // Import Input
-import { Label } from '@/components/ui/label';   // Import Label
-import { Loader2 } from 'lucide-react'; // Import Loader icon
-import toast, { Toaster } from 'react-hot-toast'; // Import toast
+import { Footer } from '@/components/ui/footer'; 
+import { Button } from '@/components/ui/button'; 
+import { Input } from '@/components/ui/input';   
+import { Label } from '@/components/ui/label';   
+import { Loader2 } from 'lucide-react'; 
+import toast, { Toaster } from 'react-hot-toast'; 
 
 // Component that uses useSearchParams
 function AuthContent() {
@@ -24,7 +26,7 @@ function AuthContent() {
   const [isSignUp, setIsSignUp] = useState(true); // Default to sign-up initially
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null); // For success messages like email confirmation
+  const [message, setMessage] = useState<string | null>(null); 
 
   // Capture checkout parameters if they exist
   const checkoutPrice = searchParams.get('checkout_price');
@@ -37,7 +39,6 @@ function AuthContent() {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           console.log('User already logged in, redirecting to dashboard.');
-          // Redirect immediately if logged in, checkout intent handled by listener below if needed
           router.push('/dashboard'); 
         }
       } catch (err) {
@@ -50,12 +51,10 @@ function AuthContent() {
   // Set initial view based on query param after mount
   useEffect(() => {
     const viewParam = searchParams.get('view');
-    // Only update if the param exists and specifies 'signin'
     if (viewParam === 'signin') { 
       setIsSignUp(false);
     } 
-    // Otherwise, it defaults to the initial state 'true' (sign-up)
-  }, [searchParams]); // Re-run if searchParams change (though usually stable)
+  }, [searchParams]); 
 
   // Store checkout intent if parameters exist (runs once on mount)
   useEffect(() => {
@@ -128,7 +127,6 @@ function AuthContent() {
         email,
         password,
         options: {
-          // This URL points to the route handler we created
           emailRedirectTo: `${window.location.origin}/auth/callback`, 
         },
       });
@@ -139,8 +137,6 @@ function AuthContent() {
       
       setMessage('Sign-up successful! Please check your email to confirm your account.');
       toast.success('Sign-up successful! Check your email.');
-      // Clear form? Optionally keep email populated
-      // setEmail(''); 
       setPassword('');
       setConfirmPassword('');
 
@@ -168,17 +164,12 @@ function AuthContent() {
        });
 
        if (signInError) {
-         // Specific check for invalid credentials
          if (signInError.message.includes('Invalid login credentials')) {
             throw new Error('Invalid email or password.');
          }
          throw signInError;
        }
-       // Success is handled by the onAuthStateChange listener redirecting to dashboard/pricing
        console.log('Sign in attempt successful, waiting for redirect...');
-       // Optionally show a temporary success message before redirect
-       // setMessage('Sign in successful! Redirecting...'); 
-       // toast.success('Sign in successful!');
 
      } catch (err) {
        console.error('Sign in error:', err);
@@ -192,27 +183,26 @@ function AuthContent() {
  
    // Handle Google Sign In
    const handleGoogleSignIn = async () => {
-     setLoading(true); // Optional: show loading state on the button
+     console.log("handleGoogleSignIn called"); // Add log
+     setLoading(true); 
      setError(null);
      setMessage(null);
      try {
+       console.log("Attempting supabase.auth.signInWithOAuth..."); // Add log
+       // Removed the options object entirely to rely on Supabase default redirect behavior
        const { error } = await supabase.auth.signInWithOAuth({
-         provider: 'google',
-         options: {
-           redirectTo: `${window.location.origin}/auth/callback`, // Use the same callback
-           // Add scopes if needed, e.g., 'profile email'
-         },
+         provider: 'google'
        });
+       console.log("signInWithOAuth call completed. Error:", error); // Add log
        if (error) throw error;
-       // Redirect happens automatically via Supabase
+       console.log("Google sign-in initiated, redirect should happen."); // Add log
      } catch (err) {
        console.error('Google Sign in error:', err);
        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during Google sign in.';
        setError(errorMessage);
        toast.error(errorMessage);
-       setLoading(false); // Ensure loading stops on error
+       setLoading(false); 
      } 
-     // No finally setLoading(false) here as successful OAuth redirects away
    };
  
    return (
@@ -290,7 +280,6 @@ function AuthContent() {
             )}
 
             <div>
-              {/* Removed type="submit" from custom Button */}
               <Button className="w-full flex justify-center" disabled={loading}> 
                 {loading && <Loader2 className="animate-spin h-5 w-5 mr-3" />}
                 {isSignUp ? 'Sign up' : 'Sign in'}
@@ -312,18 +301,17 @@ function AuthContent() {
            <div>
              <Button 
                variant="outline" 
-               className="w-full flex justify-center items-center gap-2" 
+               className="w-full flex justify-center items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50" // Adjusted styling
                onClick={handleGoogleSignIn}
-               disabled={loading} // Disable while other actions are loading
+               disabled={loading} 
              >
-               <svg className="h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                 <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 109.8 512 0 402.2 0 261.8 0 120.3 109.8 11.8 244 11.8c70.3 0 129.8 28.7 173.4 74.2L346.8 172.2c-20.8-20.8-48.6-33.8-82.8-33.8-65.5 0-119.1 54.2-119.1 121.3 0 67.1 53.6 121.3 119.1 121.3 76.3 0 104.4-54.7 108.1-82.7H244v-66h213.1c3.8 21.4 5.9 44.8 5.9 70.1z"></path>
-               </svg>
-               Sign {isSignUp ? 'up' : 'in'} with Google
+               {/* Use Image component for the logo */}
+               <Image src="/google.svg" alt="Google logo" width={18} height={18} />
+               Sign in with Google 
              </Button>
            </div>
  
-           <div className="text-sm text-center mt-6"> {/* Added margin top */}
+           <div className="text-sm text-center mt-6"> 
             <button
               onClick={() => { 
                 setIsSignUp(!isSignUp); 
@@ -346,6 +334,7 @@ function AuthContent() {
           </div>
         </div>
       </main>
+      <Footer /> 
     </div>
   );
 }

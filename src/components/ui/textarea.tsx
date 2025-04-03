@@ -1,10 +1,14 @@
 import React from 'react';
 import { cn } from '@/lib/utils'; // Assuming you have a utility for class names
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+// Remove the empty interface definition
+// interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, ...props }, ref) => {
+// Use the extended type directly
+const Textarea = React.forwardRef<
+  HTMLTextAreaElement, 
+  React.TextareaHTMLAttributes<HTMLTextAreaElement> // Use the base type directly
+>(({ className, ...props }, ref) => {
     return (
       <textarea
         className={cn(

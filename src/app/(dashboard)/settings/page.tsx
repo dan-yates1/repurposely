@@ -9,14 +9,15 @@ import toast, { Toaster } from "react-hot-toast";
 import { 
   User, 
   CreditCard, 
-  Bell, 
-  ShieldCheck, 
+  // Bell, // Removed unused icon
+  // ShieldCheck, // Removed unused icon
   History,
   ChevronRight,
   LogOut,
   Loader2,
   ArrowRight,
-  AlertTriangle // Import AlertTriangle for Danger Zone
+  AlertTriangle, // Import AlertTriangle for Danger Zone
+  ExternalLink // Import for invoice links
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -52,9 +53,22 @@ export default function Settings() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false); 
   const [isPortalLoading, setIsPortalLoading] = useState(false); 
-  const [showDeleteModal, setShowDeleteModal] = useState(false); // State for delete confirmation
-  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState(""); // State for delete confirmation input
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false); // Loading state for delete
+  const [showDeleteModal, setShowDeleteModal] = useState(false); 
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState(""); 
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false); 
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]); // Use specific type
+  const [historyLoading, setHistoryLoading] = useState(false); 
+
+  // Define type for payment history items fetched from API
+  interface PaymentHistoryItem {
+    id: string;
+    date: number; // Expecting timestamp in milliseconds
+    amount: number;
+    currency: string;
+    status: string | null;
+    pdfUrl: string | null;
+    hostedInvoiceUrl: string | null;
+  }
 
   // Fetch user data
   useEffect(() => {
@@ -77,6 +91,45 @@ export default function Settings() {
     };
     getUserData();
   }, [router]);
+
+  // Fetch payment history when subscription tab is active
+  useEffect(() => {
+    const fetchPaymentHistory = async () => {
+      if (activeTab !== 'subscription') return; // Only fetch if tab is active
+
+      setHistoryLoading(true);
+      setPaymentHistory([]); // Clear previous history
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !sessionData.session) {
+          // Don't show error toast here, might just be logged out
+          console.log("No session found, cannot fetch payment history.");
+          return; 
+        }
+        const accessToken = sessionData.session.access_token;
+
+        const response = await fetch('/api/stripe/payment-history', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch payment history');
+        }
+        
+        const history = await response.json();
+        setPaymentHistory(history);
+
+      } catch (error) {
+        console.error("Error fetching payment history:", error);
+        toast.error(error instanceof Error ? error.message : 'Could not load payment history.');
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    fetchPaymentHistory();
+  }, [activeTab]); // Re-fetch when tab changes to 'subscription'
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -219,8 +272,8 @@ export default function Settings() {
     { id: "account", label: "Account", icon: <User className="h-5 w-5" /> },
     { id: "tokens", label: "Token Usage", icon: <History className="h-5 w-5" /> },
     { id: "subscription", label: "Subscription", icon: <CreditCard className="h-5 w-5" /> },
-    { id: "notifications", label: "Notifications", icon: <Bell className="h-5 w-5" /> },
-    { id: "security", label: "Security", icon: <ShieldCheck className="h-5 w-5" /> },
+    // { id: "notifications", label: "Notifications", icon: <Bell className="h-5 w-5" /> }, // Hidden for now
+    // { id: "security", label: "Security", icon: <ShieldCheck className="h-5 w-5" /> }, // Hidden for now
   ];
 
   // User details for display
@@ -463,8 +516,49 @@ export default function Settings() {
                   )}
                   
                   <div className="mt-8 border-t border-gray-200 pt-6">
-                     <h3 className="text-md font-medium text-gray-900 mb-2">Payment History</h3>
-                     <p className="text-sm text-gray-500 italic">No payment history available</p>
+                     <h3 className="text-md font-medium text-gray-900 mb-4">Payment History</h3>
+                     {historyLoading ? (
+                       <div className="flex justify-center items-center py-4">
+                         <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+                       </div>
+                     ) : paymentHistory.length > 0 ? (
+                       <ul className="space-y-3">
+                         {paymentHistory.map((invoice: PaymentHistoryItem) => ( // Add type to map parameter
+                           <li key={invoice.id} className="flex justify-between items-center text-sm border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                             <div>
+                               {/* Convert timestamp to Date before formatting */}
+                               <span className="text-gray-700">{formatDate(new Date(invoice.date).toISOString())}</span> 
+                               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                 invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 
+                                 invoice.status === 'open' ? 'bg-yellow-100 text-yellow-800' : 
+                                 'bg-gray-100 text-gray-600'
+                               }`}>
+                                 {invoice.status}
+                               </span>
+                             </div>
+                             <div className="flex items-center gap-3">
+                               <span className="text-gray-900 font-medium">
+                                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency }).format(invoice.amount)}
+                               </span>
+                               {/* Ensure href is string or undefined */}
+                               {(invoice.hostedInvoiceUrl || invoice.pdfUrl) && ( 
+                                 <a 
+                                   href={invoice.hostedInvoiceUrl ?? invoice.pdfUrl ?? undefined} 
+                                   target="_blank" 
+                                   rel="noopener noreferrer"
+                                   className="text-indigo-600 hover:text-indigo-800"
+                                   title={invoice.hostedInvoiceUrl ? "View Invoice" : "Download PDF"}
+                                 >
+                                   <ExternalLink className="h-4 w-4" />
+                                 </a>
+                               )}
+                             </div>
+                           </li>
+                         ))}
+                       </ul>
+                     ) : (
+                       <p className="text-sm text-gray-500 italic">No payment history found.</p>
+                     )}
                   </div>
                 </div>
               </div>

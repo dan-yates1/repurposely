@@ -2,12 +2,24 @@
 
 import Image from 'next/image';
 import { Download, Info } from 'lucide-react';
-import { GeneratedImage } from '@/lib/image-generation-service'; // Reuse type
-import { Button } from './button'; // Assuming Button component exists
+// Removed incorrect import
+import { Button } from './button'; 
 import toast from 'react-hot-toast';
 
+// Define a type matching the data structure from the DB / history page
+// (Could potentially be moved to a shared types file later)
+interface ImageHistoryItem {
+  id: string; 
+  image_url: string; // Use image_url from DB
+  prompt: string;
+  revised_prompt?: string | null; 
+  size?: string | null; 
+  style?: string | null; 
+  created_at: string; 
+}
+
 interface ImageHistoryCardProps {
-  image: GeneratedImage;
+  image: ImageHistoryItem; // Use the correct type
 }
 
 export function ImageHistoryCard({ image }: ImageHistoryCardProps) {
@@ -15,7 +27,7 @@ export function ImageHistoryCard({ image }: ImageHistoryCardProps) {
   const handleDownload = () => {
     // Create a temporary link element
     const link = document.createElement('a');
-    link.href = image.url;
+    link.href = image.image_url; // Use image_url
     // Suggest a filename based on prompt or ID
     const filename = image.prompt ? 
       `repurposely-${image.prompt.slice(0, 20).replace(/\s+/g, '_')}-${image.id.slice(0, 5)}.png` : 
@@ -36,7 +48,7 @@ export function ImageHistoryCard({ image }: ImageHistoryCardProps) {
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden group relative">
       <div className="aspect-square relative">
         <Image
-          src={image.url}
+          src={image.image_url} // Use image_url
           alt={image.revised_prompt || image.prompt}
           fill // Use fill to cover the aspect ratio container
           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" // Adjust sizes based on your grid layout

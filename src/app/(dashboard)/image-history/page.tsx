@@ -4,18 +4,30 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import toast, { Toaster } from "react-hot-toast";
-import { Image as ImageIcon, Clock } from "lucide-react"; // Removed unused SearchIcon
+import { Image as ImageIcon, Clock } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { Search } from "@/components/ui/search";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { GeneratedImage } from "@/lib/image-generation-service"; // Reuse type
-import { ImageHistoryCard } from "@/components/ui/image-history-card"; // Import the new card
+// Removed GeneratedImageData import as we'll define a specific type here
+import { ImageHistoryCard } from "@/components/ui/image-history-card"; 
+
+// Define type for image history items fetched from DB
+interface ImageHistoryItem {
+  id: string; // Assuming 'id' column exists
+  image_url: string; // Assuming 'image_url' column exists
+  prompt: string;
+  revised_prompt?: string | null; // Allow null if DB column is nullable
+  size?: string | null; // Allow null if DB column is nullable
+  style?: string | null; // Allow null if DB column is nullable
+  created_at: string; // Assuming timestamp string
+  // Add other relevant columns from your 'generated_images' table if needed
+}
 
 export default function ImageHistory() {
   usePageTitle("Image History");
   const router = useRouter();
-  const [imageHistory, setImageHistory] = useState<GeneratedImage[]>([]);
+  const [imageHistory, setImageHistory] = useState<ImageHistoryItem[]>([]); // Use the new type
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -42,10 +54,11 @@ export default function ImageHistory() {
       }
 
       if (data) {
-        // Map data to GeneratedImage type if necessary (adjust based on actual table columns)
-        const formattedData: GeneratedImage[] = data.map(item => ({
-          id: item.id,
-          url: item.image_url,
+        // Map data to ImageHistoryItem type 
+        // Ensure the properties match your actual table columns
+        const formattedData: ImageHistoryItem[] = data.map(item => ({
+          id: item.id, // Make sure 'id' exists
+          image_url: item.image_url, // Make sure 'image_url' exists
           prompt: item.prompt,
           revised_prompt: item.revised_prompt,
           size: item.size,
@@ -79,7 +92,7 @@ export default function ImageHistory() {
     getUserData();
   }, [fetchImageHistory, router]); 
 
-  // No filtering needed here as it's done in the query
+  // Use the correctly typed state
   const filteredImages = imageHistory; 
 
   return (
@@ -91,7 +104,6 @@ export default function ImageHistory() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Image History</h1>
-        {/* Optional: Link back to image generator? */}
          <Button onClick={() => router.push("/create")} variant="secondary" className="w-full sm:w-auto">
            Generate New Image
          </Button>
@@ -109,12 +121,10 @@ export default function ImageHistory() {
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-             {/* Sort Order Toggle */}
              <Button variant="secondary" onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")} className="flex items-center gap-2">
                <Clock className="h-4 w-4" />
                <span>{sortOrder === "desc" ? "Newest First" : "Oldest First"}</span>
              </Button>
-             {/* Add other filters like size/style if needed later */}
           </div>
         </div>
       </div>
@@ -134,9 +144,9 @@ export default function ImageHistory() {
         </div>
       ) : filteredImages.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {/* Use ImageHistoryCard */}
-          {filteredImages.map((item) => (
-            <ImageHistoryCard key={item.id} image={item} />
+          {/* Pass item which should now match ImageHistoryItem */}
+          {filteredImages.map((item) => ( 
+            <ImageHistoryCard key={item.id} image={item} /> 
            ))}
         </div>
       ) : (

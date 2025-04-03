@@ -1,17 +1,22 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-// This is a simplified middleware that doesn't try to use server-side Supabase
-// which was causing issues with authentication
 export async function middleware(req: NextRequest) {
-  console.log('Middleware running for path:', req.nextUrl.pathname);
-  
-  // For now, we'll just allow all requests to go through
-  // Authentication will be handled on the client side
-  return NextResponse.next();
+  console.log('Simplified Middleware running for path:', req.nextUrl.pathname); 
+  // Completely pass through without touching Supabase client or session
+  return NextResponse.next()
 }
 
-// Only run middleware on auth and dashboard routes
+// Ensure middleware runs on relevant paths (keep existing matcher)
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/:path*'],
-};
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * Feel free to modify this pattern to include more paths.
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
+}
