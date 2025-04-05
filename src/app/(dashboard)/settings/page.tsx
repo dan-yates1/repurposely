@@ -6,9 +6,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import toast, { Toaster } from "react-hot-toast";
-import { 
-  User, 
-  CreditCard, 
+import {
+  User,
+  CreditCard,
   // Bell, // Removed unused icon
   // ShieldCheck, // Removed unused icon
   History,
@@ -25,20 +25,20 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useTokens } from "@/hooks/useTokens";
 import { TokenHistoryCard } from "@/components/ui/token-history";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label"; 
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 // Import modal/dialog components if you have them, otherwise use basic confirm
-// import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"; 
+// import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function Settings() {
   usePageTitle("Account Settings");
   const router = useRouter();
-  const { 
-    tokenUsage, 
-    transactionHistory, 
-    loading: tokensLoading, 
-    subscriptionData, 
-    setSubscriptionData 
+  const {
+    tokenUsage,
+    transactionHistory,
+    loading: tokensLoading,
+    subscriptionData,
+    setSubscriptionData
   } = useTokens();
   const [user, setUser] = useState<{
     id?: string;
@@ -47,17 +47,17 @@ export default function Settings() {
     app_metadata?: { provider?: string };
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("account"); 
+  const [activeTab, setActiveTab] = useState("account");
   const [signingOut, setSigningOut] = useState(false);
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [isSendingReset, setIsSendingReset] = useState(false); 
-  const [isPortalLoading, setIsPortalLoading] = useState(false); 
-  const [showDeleteModal, setShowDeleteModal] = useState(false); 
-  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState(""); 
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false); 
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]); // Use specific type
-  const [historyLoading, setHistoryLoading] = useState(false); 
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Define type for payment history items fetched from API
   interface PaymentHistoryItem {
@@ -78,7 +78,7 @@ export default function Settings() {
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError || !userData?.user) {
           console.error("Error fetching user or user not found:", userError);
-          router.push("/auth"); 
+          router.push("/auth");
           return;
         }
         setUser(userData.user);
@@ -104,19 +104,19 @@ export default function Settings() {
         if (sessionError || !sessionData.session) {
           // Don't show error toast here, might just be logged out
           console.log("No session found, cannot fetch payment history.");
-          return; 
+          return;
         }
         const accessToken = sessionData.session.access_token;
 
         const response = await fetch('/api/stripe/payment-history', {
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch payment history');
         }
-        
+
         const history = await response.json();
         setPaymentHistory(history);
 
@@ -143,7 +143,7 @@ export default function Settings() {
       setSigningOut(false);
     }
   };
-  
+
   // Handle subscription cancellation
   const handleCancelSubscription = async () => {
     try {
@@ -176,7 +176,7 @@ export default function Settings() {
       setCancelingSubscription(false);
     }
   };
-  
+
   // Handle redirecting to Stripe Customer Portal
   const handleManageBilling = async () => {
     setIsPortalLoading(true);
@@ -199,9 +199,9 @@ export default function Settings() {
       console.error("Error redirecting to billing portal:", error);
       toast.error(error instanceof Error ? error.message : "Could not open billing portal.");
       setIsPortalLoading(false);
-    } 
+    }
   };
- 
+
   // Handle password reset request
   const handlePasswordResetRequest = async () => {
     if (!user?.email) {
@@ -210,7 +210,7 @@ export default function Settings() {
     }
     setIsSendingReset(true);
     try {
-      const redirectUrl = window.location.origin + '/update-password'; 
+      const redirectUrl = window.location.origin + '/update-password';
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo: redirectUrl,
       });
@@ -243,9 +243,9 @@ export default function Settings() {
        // Call the backend API to handle deletion
        const response = await fetch('/api/user/delete', {
          method: 'POST',
-         headers: { 
+         headers: {
            'Content-Type': 'application/json',
-           'Authorization': `Bearer ${accessToken}` 
+           'Authorization': `Bearer ${accessToken}`
          },
        });
 
@@ -278,14 +278,14 @@ export default function Settings() {
 
   // User details for display
   const userEmail = user?.email || "";
-  const userName = user?.user_metadata?.full_name || userEmail.split("@")[0] || "User"; 
+  const userName = user?.user_metadata?.full_name || userEmail.split("@")[0] || "User";
   const userAvatar = user?.user_metadata?.avatar_url || null;
   const userProvider = user?.app_metadata?.provider || "email";
 
   // Derived subscription state from hook data
   const currentTier = (subscriptionData?.subscription_tier || "FREE").toUpperCase();
-  const isActive = subscriptionData?.is_active ?? (currentTier !== "FREE"); 
-  const isCancelled = !isActive && currentTier !== "FREE"; 
+  const isActive = subscriptionData?.is_active ?? (currentTier !== "FREE");
+  const isCancelled = !isActive && currentTier !== "FREE";
   const endDate = subscriptionData?.subscription_end_date;
   const startDate = subscriptionData?.subscription_start_date;
 
@@ -301,7 +301,7 @@ export default function Settings() {
 
       {/* Breadcrumbs REMOVED */}
       {/* <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }]} /> */}
-      
+
       {/* Added Title/Description Block */}
       <div className="mb-8"> {/* Added mb-8 for spacing below */}
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
@@ -309,7 +309,36 @@ export default function Settings() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 text-indigo-600 animate-spin" /></div>
+        <div className="animate-pulse">
+          {/* Tabs skeleton */}
+          <div className="w-full md:w-64 space-y-2 mb-6">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-gray-200"></div>
+                <div>
+                  <div className="h-5 w-32 bg-gray-200 rounded mb-1"></div>
+                  <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-8 w-full bg-gray-200 rounded"></div>
+                <div className="h-8 w-full bg-gray-200 rounded"></div>
+                <div className="h-8 w-full bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content skeleton */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <div className="h-6 w-48 bg-gray-200 rounded mb-6"></div>
+            <div className="space-y-4">
+              <div className="h-10 w-full bg-gray-100 rounded"></div>
+              <div className="h-10 w-full bg-gray-100 rounded"></div>
+              <div className="h-10 w-full bg-gray-100 rounded"></div>
+              <div className="h-10 w-1/3 bg-gray-200 rounded mt-4"></div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
@@ -323,7 +352,7 @@ export default function Settings() {
                   <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold">{userName.charAt(0).toUpperCase()}</div>
                 )}
                 <div>
-                  <h2 className="font-medium text-gray-900">{userName}</h2> 
+                  <h2 className="font-medium text-gray-900">{userName}</h2>
                   <p className="text-sm text-gray-500">{userEmail}</p>
                 </div>
               </div>
@@ -360,11 +389,11 @@ export default function Settings() {
                    <div className="space-y-4">
                      <div>
                        <Label htmlFor="email">Email</Label>
-                       <Input 
-                         id="email" 
-                         type="email" 
-                         value={userEmail} 
-                         disabled 
+                       <Input
+                         id="email"
+                         type="email"
+                         value={userEmail}
+                         disabled
                          className="mt-1 bg-gray-100 cursor-not-allowed"
                         />
                      </div>
@@ -372,15 +401,15 @@ export default function Settings() {
                    </div>
                  </div>
 
-                  <div className="border-t border-gray-200 pt-6"> 
+                  <div className="border-t border-gray-200 pt-6">
                     <h2 className="text-lg font-medium text-gray-900 mb-4">Password</h2>
                     <p className="text-sm text-gray-600 mb-4">
                       To change your password, we&apos;ll send a secure reset link to your email address.
                     </p>
-                    <Button 
-                      variant="secondary" 
-                      onClick={handlePasswordResetRequest} 
-                      disabled={isSendingReset} 
+                    <Button
+                      variant="secondary"
+                      onClick={handlePasswordResetRequest}
+                      disabled={isSendingReset}
                     >
                        {isSendingReset ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                        Send Password Reset Email
@@ -395,10 +424,10 @@ export default function Settings() {
                     <p className="text-sm text-gray-600 mb-4">
                       Deleting your account is irreversible. All your content history and subscription data will be permanently lost. This action cannot be undone.
                     </p>
-                    <Button 
+                    <Button
                       variant="danger" // Assuming you have a 'danger' variant or will style it
-                      onClick={() => setShowDeleteModal(true)} 
-                      disabled={isDeletingAccount} 
+                      onClick={() => setShowDeleteModal(true)}
+                      disabled={isDeletingAccount}
                     >
                        {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                        Delete My Account
@@ -457,7 +486,7 @@ export default function Settings() {
               <div>
                 <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
                   <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Details</h2>
-                  
+
                   <div className="border border-gray-200 rounded-lg p-4 mb-6 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-600">Current Plan:</span>
@@ -484,7 +513,7 @@ export default function Settings() {
                        </span>
                      </div>
                   </div>
-                  
+
                   {currentTier === "FREE" ? (
                      <Link href="/pricing"><Button variant="primary" className="w-full">Upgrade to Pro</Button></Link>
                   ) : (
@@ -492,7 +521,7 @@ export default function Settings() {
                       {currentTier !== 'ENTERPRISE' && (
                          <Link href="/pricing"><Button variant="primary" className="w-full">View Plans & Upgrade</Button></Link>
                       )}
-                      
+
                       <div className="border-t border-gray-200 pt-4 mt-4">
                         <h3 className="text-md font-medium text-gray-900 mb-3">Manage Subscription</h3>
                         {!showCancelConfirm ? (
@@ -500,7 +529,7 @@ export default function Settings() {
                             <Button variant="secondary" className="w-full" onClick={handleManageBilling} disabled={isPortalLoading || isCancelled}>
                               {isPortalLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Manage Billing & Invoices
                             </Button>
-                            {!isCancelled && ( 
+                            {!isCancelled && (
                               <Button variant="outline" className="w-full text-red-600 border-red-300 hover:bg-red-50" onClick={() => setShowCancelConfirm(true)}>Cancel Subscription</Button>
                             )}
                           </div>
@@ -519,7 +548,7 @@ export default function Settings() {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="mt-8 border-t border-gray-200 pt-6">
                      <h3 className="text-md font-medium text-gray-900 mb-4">Payment History</h3>
                      {historyLoading ? (
@@ -532,10 +561,10 @@ export default function Settings() {
                            <li key={invoice.id} className="flex justify-between items-center text-sm border-b border-gray-100 pb-3 last:border-0 last:pb-0">
                              <div>
                                {/* Convert timestamp to Date before formatting */}
-                               <span className="text-gray-700">{formatDate(new Date(invoice.date).toISOString())}</span> 
+                               <span className="text-gray-700">{formatDate(new Date(invoice.date).toISOString())}</span>
                                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                                 invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 
-                                 invoice.status === 'open' ? 'bg-yellow-100 text-yellow-800' : 
+                                 invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                 invoice.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
                                  'bg-gray-100 text-gray-600'
                                }`}>
                                  {invoice.status}
@@ -546,10 +575,10 @@ export default function Settings() {
                                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency }).format(invoice.amount)}
                                </span>
                                {/* Ensure href is string or undefined */}
-                               {(invoice.hostedInvoiceUrl || invoice.pdfUrl) && ( 
-                                 <a 
-                                   href={invoice.hostedInvoiceUrl ?? invoice.pdfUrl ?? undefined} 
-                                   target="_blank" 
+                               {(invoice.hostedInvoiceUrl || invoice.pdfUrl) && (
+                                 <a
+                                   href={invoice.hostedInvoiceUrl ?? invoice.pdfUrl ?? undefined}
+                                   target="_blank"
                                    rel="noopener noreferrer"
                                    className="text-indigo-600 hover:text-indigo-800"
                                    title={invoice.hostedInvoiceUrl ? "View Invoice" : "Download PDF"}
@@ -598,7 +627,7 @@ export default function Settings() {
                </p>
                <div>
                   <Label htmlFor="deleteConfirmInput" className="sr-only">Type DELETE to confirm</Label>
-                  <Input 
+                  <Input
                      id="deleteConfirmInput"
                      type="text"
                      value={deleteConfirmationInput}
@@ -611,9 +640,9 @@ export default function Settings() {
                   <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={isDeletingAccount}>
                      Cancel
                   </Button>
-                  <Button 
-                     variant="danger" 
-                     onClick={handleAccountDeletion} 
+                  <Button
+                     variant="danger"
+                     onClick={handleAccountDeletion}
                      disabled={isDeletingAccount || deleteConfirmationInput.toLowerCase() !== 'delete'}
                   >
                      {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

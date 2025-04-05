@@ -27,13 +27,13 @@ export default function Create() {
   usePageTitle("Create New Content");
   const searchParams = useSearchParams();
   // Destructure fetch functions from useTokens
-  const { 
-    canPerformOperation, 
-    recordTokenTransaction, 
-    tokenUsage, 
+  const {
+    canPerformOperation,
+    recordTokenTransaction,
+    tokenUsage,
     fetchTokenUsage, // Add this
     fetchTransactionHistory // Add this
-  } = useTokens(); 
+  } = useTokens();
   const { user } = useUser();
 
   // Step management
@@ -111,7 +111,7 @@ export default function Create() {
         console.warn(`Template ID "${templateIdFromQuery}" from query param not found.`);
       }
     }
-   
+
   }, [searchParams, customTemplates]); // Depend on customTemplates as well
 
   // Load custom templates from localStorage
@@ -311,7 +311,7 @@ export default function Create() {
           onCategoryChange={handleCategoryChange}
           filteredTemplates={filteredTemplates} // Pass the filtered list
           // Pass the preview handler down
-          onPreviewTemplate={handlePreviewTemplate} 
+          onPreviewTemplate={handlePreviewTemplate}
         />
       ),
     },
@@ -393,6 +393,70 @@ export default function Create() {
       ),
     },
   ];
+
+  // Loading state for initial data fetching
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Effect to simulate initial data loading
+  useEffect(() => {
+    // Simulate loading time for data fetching
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show skeleton while initial data is loading
+  if (initialLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-12">
+        <div className="animate-pulse">
+          {/* Breadcrumb skeleton */}
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="h-4 w-20 bg-gray-200 rounded"></div>
+            <div className="h-4 w-4 bg-gray-200 rounded"></div>
+            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          </div>
+
+          {/* Header skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+              <div className="h-8 w-64 bg-gray-200 rounded mb-2"></div>
+            </div>
+            <div className="h-8 w-40 bg-gray-200 rounded"></div>
+          </div>
+
+          {/* Steps skeleton */}
+          <div className="mb-8">
+            <div className="flex justify-between mb-8">
+              {Array(5).fill(0).map((_, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div className="h-8 w-8 rounded-full bg-gray-200 mb-2"></div>
+                  <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Content skeleton */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <div className="h-6 w-48 bg-gray-200 rounded mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {Array(6).fill(0).map((_, i) => (
+                <div key={i} className="h-40 bg-gray-100 rounded p-4">
+                  <div className="h-6 w-3/4 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 w-5/6 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 pb-12"> {/* Keep pb-12 */}

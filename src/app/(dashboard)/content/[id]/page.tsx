@@ -35,13 +35,13 @@ export default function ContentView() {
 
   const [content, setContent] = useState<ContentItem | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updatingStatus, setUpdatingStatus] = useState(false); 
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   usePageTitle("View Content");
 
   // Use useCallback for fetchContent to stabilize dependencies
-  const fetchContent = useCallback(async () => { 
+  const fetchContent = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -56,11 +56,11 @@ export default function ContentView() {
         .from("content_history")
         .select("*")
         .eq("id", contentId)
-        .eq("user_id", userId) 
+        .eq("user_id", userId)
         .single();
 
       if (fetchError) {
-        if (fetchError.code === 'PGRST116') { 
+        if (fetchError.code === 'PGRST116') {
            setError("Content not found or you don't have permission.");
         } else {
            throw fetchError;
@@ -134,7 +134,7 @@ export default function ContentView() {
 
       toast.success("Content marked as complete!");
       // Update local state to reflect the change immediately
-      setContent(prev => prev ? { ...prev, status: 'completed' } : null); 
+      setContent(prev => prev ? { ...prev, status: 'completed' } : null);
       // Optionally refetch data: await fetchContent();
 
     } catch (err: unknown) {
@@ -147,7 +147,59 @@ export default function ContentView() {
 
   // Render logic
   if (loading) {
-    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="animate-pulse">
+          {/* Breadcrumb skeleton */}
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="h-4 w-20 bg-gray-200 rounded"></div>
+            <div className="h-4 w-4 bg-gray-200 rounded"></div>
+            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          </div>
+
+          {/* Header skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+              <div className="h-8 w-64 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 w-48 bg-gray-200 rounded"></div>
+            </div>
+            <div className="flex space-x-3">
+              <div className="h-10 w-24 bg-gray-200 rounded"></div>
+              <div className="h-10 w-36 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+
+          {/* Content card skeleton */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
+            <div className="flex items-center mb-4">
+              <div className="h-6 w-6 bg-gray-200 rounded-full mr-2"></div>
+              <div className="h-5 w-48 bg-gray-200 rounded"></div>
+            </div>
+            <div className="space-y-3 mb-6">
+              <div className="h-4 w-full bg-gray-200 rounded"></div>
+              <div className="h-4 w-full bg-gray-200 rounded"></div>
+              <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="h-5 w-32 bg-gray-200 rounded"></div>
+              <div className="h-5 w-24 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+
+          {/* Repurposed content skeleton */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+            <div className="space-y-3">
+              <div className="h-4 w-full bg-gray-200 rounded"></div>
+              <div className="h-4 w-full bg-gray-200 rounded"></div>
+              <div className="h-4 w-full bg-gray-200 rounded"></div>
+              <div className="h-4 w-full bg-gray-200 rounded"></div>
+              <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
   if (error) {
     return <div className="text-red-600 bg-red-50 p-4 rounded-md text-center">{error}</div>;
@@ -172,11 +224,11 @@ export default function ContentView() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <Toaster position="top-right" />
-      
+
       {/* Breadcrumbs */}
       <Breadcrumbs items={[
-          { label: "Dashboard", href: "/dashboard" }, 
-          { label: "My Content", href: "/my-content" }, 
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "My Content", href: "/my-content" },
           { label: content?.content_type || "View Content" }
       ]} />
 
@@ -222,11 +274,11 @@ export default function ContentView() {
             Audience: {content.target_audience || "N/A"}
           </div>
           {/* Display Status using Badge */}
-          <Badge 
+          <Badge
              variant={getBadgeVariant(content.status)}
              className="capitalize"
           >
-             {content.status || 'Draft'} 
+             {content.status || 'Draft'}
           </Badge>
         </div>
       </div>
@@ -238,10 +290,10 @@ export default function ContentView() {
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Generated Image</h2>
             <div className="relative aspect-video w-full max-w-2xl mx-auto overflow-hidden rounded-md border">
-              <Image 
-                src={content.generated_image_url} 
-                alt="Generated AI Image for content" 
-                layout="fill" 
+              <Image
+                src={content.generated_image_url}
+                alt="Generated AI Image for content"
+                layout="fill"
                 objectFit="contain" // Use 'contain' to see the whole image
               />
             </div>

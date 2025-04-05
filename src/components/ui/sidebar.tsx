@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 // Removed Menu, X from imports
-import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'; 
+import { Home, Clock, PenSquare, Settings, LogOut, Coins, AlertCircle, ChevronLeft, ChevronRight, BarChart2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useTokens } from '@/hooks/useTokens';
 import toast from 'react-hot-toast';
@@ -22,8 +22,8 @@ export function Sidebar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const {
     tokenUsage,
-    loading: tokensLoading, 
-    error: tokensError 
+    loading: tokensLoading,
+    error: tokensError
   } = useTokens();
 
   const isActive = (path: string) => {
@@ -36,17 +36,17 @@ export function Sidebar() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
         const email = data.user.email;
-        
+
         if (email) {
           setUserName(email.split('@')[0]);
           setUserInitial(email.charAt(0).toUpperCase());
         }
-        
+
         // Set profile image if available
         if (data.user.user_metadata?.avatar_url) {
           setProfileImageUrl(data.user.user_metadata.avatar_url);
         }
-        
+
         // Fetch user subscription plan
         try {
           const { data: subscriptionData, error } = await supabase
@@ -54,7 +54,7 @@ export function Sidebar() {
             .select('subscription_tier')
             .eq('user_id', data.user.id)
             .single();
-            
+
           if (error) {
             console.error('Error fetching subscription:', error);
           } else if (subscriptionData) {
@@ -76,7 +76,7 @@ export function Sidebar() {
         setIsDropdownOpen(false);
       }
     }
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -105,7 +105,7 @@ export function Sidebar() {
   };
 
   // Removed toggleMobileSidebar function
-  
+
   // Removed mobile resize useEffect hook
 
   const handleSignOut = async () => {
@@ -125,25 +125,25 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile sidebar toggle button - REMOVED */}
-      {/* 
-      <button 
+      {/*
+      <button
         onClick={toggleMobileSidebar}
         className="md:hidden fixed top-4 left-4 z-30 bg-white p-2 rounded-md shadow-md"
         aria-label="Toggle sidebar"
       >
         {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
-      </button> 
+      </button>
       */}
 
       {/* Sidebar container - Adjusted classes to always hide on mobile */}
       <div className={`hidden md:flex md:relative h-full ${isCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex-col py-4 transition-all duration-300 ease-in-out z-20`}>
         {/* Toggle Button - visible only on desktop */}
-        <button 
+        <button
           onClick={toggleSidebar}
           className="hidden md:block absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1 shadow-md z-10 hover:bg-gray-50"
         >
-          {isCollapsed ? 
-            <ChevronRight size={16} className="text-gray-500" /> : 
+          {isCollapsed ?
+            <ChevronRight size={16} className="text-gray-500" /> :
             <ChevronLeft size={16} className="text-gray-500" />
           }
         </button>
@@ -167,6 +167,10 @@ export function Sidebar() {
           <Link href="/templates" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/templates')}`}>
             <PenSquare size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
             {!isCollapsed && <span className="text-sm font-medium">Templates</span>}
+          </Link>
+          <Link href="/analytics" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/analytics')}`}>
+            <BarChart2 size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
+            {!isCollapsed && <span className="text-sm font-medium">Analytics</span>}
           </Link>
           <Link href="/settings" className={`flex ${isCollapsed ? 'flex-col justify-center items-center' : 'items-center'} px-3 py-2 rounded-md ${isActive('/settings')}`}>
             <Settings size={18} className={isCollapsed ? 'mb-1' : 'mr-3'} />
@@ -214,11 +218,11 @@ export function Sidebar() {
           >
             <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white ${isCollapsed ? 'mb-1' : 'mr-3'} overflow-hidden`}>
               {profileImageUrl ? (
-                <Image 
-                  src={profileImageUrl} 
-                  alt="Profile" 
-                  width={32} 
-                  height={32} 
+                <Image
+                  src={profileImageUrl}
+                  alt="Profile"
+                  width={32}
+                  height={32}
                   className="object-cover"
                 />
               ) : (
@@ -236,9 +240,9 @@ export function Sidebar() {
               </div>
             )}
           </button>
-          
+
           {isDropdownOpen && (
-            <div 
+            <div
               className={`absolute z-50 py-1 bg-white rounded-md shadow-lg border border-gray-200 w-48 ${isCollapsed ? 'left-full ml-2' : 'right-0'} bottom-12`}
               role="menu"
               aria-orientation="vertical"

@@ -5,11 +5,15 @@ import { ImageGenerationService, ImageSize, ImageStyle } from '@/lib/image-gener
 
 // Define constants for image generation
 const IMAGE_GENERATION_COST = 10;
-const ALLOWED_PLANS_FOR_IMAGE_GEN = ['Pro', 'Enterprise']; // Adjust plan names if necessary
+const ALLOWED_PLANS_FOR_IMAGE_GEN = ['PRO', 'ENTERPRISE']; // Using uppercase for consistency
 
-// Define an interface for the user profile data we need
-interface UserProfile {
-  plan_name: string;
+// Define interfaces for the user data we need
+interface UserSubscription {
+  subscription_tier: string;
+  is_active: boolean;
+}
+
+interface TokenUsage {
   tokens_remaining: number;
 }
 
@@ -20,13 +24,13 @@ export async function POST(request: NextRequest) {
 
   try {
     // Updated request body structure
-    const { 
-      originalContent, 
-      outputFormat, 
-      tone, 
-      contentLength, 
-      targetAudience, 
-      userId, 
+    const {
+      originalContent,
+      outputFormat,
+      tone,
+      contentLength,
+      targetAudience,
+      userId,
       generateImage, // boolean flag
       imagePrompt,   // optional user prompt
       imageSize,     // optional size
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Validate userId if image generation is requested
     if (generateImage && !userId) {
        return NextResponse.json(
@@ -50,63 +54,81 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Fetch User Data (Needed for potential image generation) ---
-    let userProfile: UserProfile | null = null; // Use the defined interface
+    let userSubscription: UserSubscription | null = null;
+    let tokenUsage: TokenUsage | null = null;
+
     if (userId) {
       try {
         const supabaseAdmin = createAdminClient();
-        const { data: profileData, error: profileError } = await supabaseAdmin
-          .from('profiles') // Assuming your table is named 'profiles'
-          .select('plan_name, tokens_remaining') // Fetch plan and tokens
-          .eq('id', userId)
+
+        // Get user subscription
+        const { data: subscriptionData, error: subscriptionError } = await supabaseAdmin
+          .from('user_subscriptions')
+          .select('subscription_tier, is_active')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .single();
 
-        if (profileError) {
-          console.error(`Error fetching profile for user ${userId}:`, profileError);
-          // Decide if this should be a fatal error or just prevent image gen
-          // For now, let content gen proceed but log error
-        } else if (!profileData) {
-          console.warn(`No profile found for user ${userId}`);
-          // Handle case where user exists in auth but not profiles table?
-        } else {
-          userProfile = profileData;
-          console.log(`Fetched profile for user ${userId}: Plan=${userProfile.plan_name}, Tokens=${userProfile.tokens_remaining}`);
+        if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+          console.error(`Error fetching subscription for user ${userId}:`, subscriptionError);
+        } else if (subscriptionData) {
+          userSubscription = subscriptionData;
+          console.log(`Fetched subscription for user ${userId}: Plan=${userSubscription.subscription_tier}, Active=${userSubscription.is_active}`);
+        }
+
+        // Get token usage
+        const { data: tokenData, error: tokenError } = await supabaseAdmin
+          .from('token_usage')
+          .select('tokens_remaining')
+          .eq('user_id', userId)
+          .single();
+
+        if (tokenError) {
+          console.error(`Error fetching token usage for user ${userId}:`, tokenError);
+        } else if (tokenData) {
+          tokenUsage = tokenData;
+          console.log(`Fetched token usage for user ${userId}: Tokens=${tokenUsage.tokens_remaining}`);
         }
       } catch (err) {
-        console.error(`Unexpected error fetching profile for user ${userId}:`, err);
+        console.error(`Unexpected error fetching data for user ${userId}:`, err);
       }
     }
 
 
     // --- Image Generation (Conditional) ---
-    if (generateImage && userId && userProfile) { // Check userProfile exists
+    if (generateImage && userId && userSubscription && tokenUsage) {
       try {
         // 1. Check Subscription Plan
-        if (!ALLOWED_PLANS_FOR_IMAGE_GEN.includes(userProfile.plan_name)) {
-          console.log(`User ${userId} on plan ${userProfile.plan_name} attempted image generation. Required: ${ALLOWED_PLANS_FOR_IMAGE_GEN.join('/')}`);
+        const userPlan = userSubscription.subscription_tier.toUpperCase();
+        const isActive = userSubscription.is_active;
+
+        if (!isActive || !ALLOWED_PLANS_FOR_IMAGE_GEN.includes(userPlan)) {
+          console.log(`User ${userId} on plan ${userPlan} (active: ${isActive}) attempted image generation. Required: ${ALLOWED_PLANS_FOR_IMAGE_GEN.join('/')}`);
           return NextResponse.json(
             { error: 'Image generation is only available for Pro and Enterprise plans. Please upgrade your subscription.' },
             { status: 403 } // Forbidden
           );
         }
-        console.log(`User ${userId} plan check passed (${userProfile.plan_name}).`);
+        console.log(`User ${userId} plan check passed (${userPlan}).`);
 
         // 2. Check Token Balance
-        if (userProfile.tokens_remaining < IMAGE_GENERATION_COST) {
-          console.log(`User ${userId} attempted image generation with insufficient tokens (${userProfile.tokens_remaining} < ${IMAGE_GENERATION_COST}).`);
+        if (tokenUsage.tokens_remaining < IMAGE_GENERATION_COST) {
+          console.log(`User ${userId} attempted image generation with insufficient tokens (${tokenUsage.tokens_remaining} < ${IMAGE_GENERATION_COST}).`);
           return NextResponse.json(
-            { error: `Insufficient tokens for image generation. Requires ${IMAGE_GENERATION_COST}, you have ${userProfile.tokens_remaining}.` },
+            { error: `Insufficient tokens for image generation. Requires ${IMAGE_GENERATION_COST}, you have ${tokenUsage.tokens_remaining}.` },
             { status: 402 } // Payment Required
           );
         }
-         console.log(`User ${userId} token balance check passed (${userProfile.tokens_remaining} >= ${IMAGE_GENERATION_COST}).`);
+        console.log(`User ${userId} token balance check passed (${tokenUsage.tokens_remaining} >= ${IMAGE_GENERATION_COST}).`);
 
         // 3. Deduct Tokens BEFORE generation
-        const newBalance = userProfile.tokens_remaining - IMAGE_GENERATION_COST;
+        const newBalance = tokenUsage.tokens_remaining - IMAGE_GENERATION_COST;
         const supabaseAdmin = createAdminClient(); // Re-init or reuse instance
         const { error: updateError } = await supabaseAdmin
-          .from('profiles')
+          .from('token_usage')
           .update({ tokens_remaining: newBalance })
-          .eq('id', userId);
+          .eq('user_id', userId);
 
         if (updateError) {
           console.error(`Failed to deduct tokens for user ${userId}:`, updateError);
@@ -117,7 +139,7 @@ export async function POST(request: NextRequest) {
         }
         console.log(`Successfully deducted ${IMAGE_GENERATION_COST} tokens from user ${userId}. New balance: ${newBalance}`);
         // Update local state for logging consistency if needed later
-        userProfile.tokens_remaining = newBalance; 
+        tokenUsage.tokens_remaining = newBalance;
 
         // 4. Proceed with Image Generation
         // Improved default prompt generation
@@ -130,7 +152,7 @@ export async function POST(request: NextRequest) {
         } else {
            console.log(`Using user-provided image prompt: "${finalImagePrompt}"`);
         }
-        
+
         console.log(`Requesting image generation for user ${userId}`);
         const imageData = await ImageGenerationService.generateImageData({
           prompt: finalImagePrompt,
@@ -145,6 +167,22 @@ export async function POST(request: NextRequest) {
           imageData.b64_json
         );
         console.log(`Image uploaded for user ${userId}, URL: ${uploadedImageUrl}`);
+
+        // Record token transaction for image generation
+        const { error: transactionError } = await supabaseAdmin
+          .from('token_transactions')
+          .insert({
+            user_id: userId,
+            tokens_used: IMAGE_GENERATION_COST,
+            transaction_type: 'IMAGE_GENERATION',
+            created_at: new Date().toISOString()
+            // Removed 'amount' field as it doesn't exist in the schema
+          });
+
+        if (transactionError) {
+          console.error(`Failed to record token transaction for user ${userId}:`, transactionError);
+          // Don't return error here, just log it
+        }
 
       } catch (err) {
         console.error(`Image generation/upload failed for user ${userId}:`, err);
@@ -168,7 +206,7 @@ export async function POST(request: NextRequest) {
     if (userId) {
       try {
         const supabaseAdmin = createAdminClient();
-        
+
         // Prepare data for insertion, including the new generated_image_url
         const historyData = {
           user_id: userId,
@@ -206,15 +244,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Return content and potentially the image URL (and maybe error)
-    return NextResponse.json({ 
-      repurposedContent, 
+    return NextResponse.json({
+      repurposedContent,
       generatedImageUrl: uploadedImageUrl, // Send back the URL
       imageError: imageGenError // Send back any image error message
     });
 
   } catch (error) {
     // Catch errors from content generation or unexpected issues
-    console.error('Error in repurpose API:', error); 
+    console.error('Error in repurpose API:', error);
     return NextResponse.json(
       { error: 'Failed to repurpose content' },
       { status: 500 }

@@ -3,6 +3,7 @@
 // Keep client-side imports
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Footer } from "@/components/ui/footer";
 import { Navbar } from "@/components/ui/navbar";
@@ -203,10 +204,12 @@ export default function HomeClient() {
                 <div className="relative z-10 rounded-xl shadow-2xl overflow-hidden transform transition-all duration-700 hover:scale-[1.02] hover:shadow-indigo-500/20 hover:shadow-2xl">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur opacity-30 group-hover:opacity-70 transition duration-1000 animate-gradient"></div>
                   <div className="relative">
-                    <img
+                    <Image
                       src="/hero-gif.gif"
                       alt="Repurposely Dashboard GIF"
                       className="w-full rounded-xl"
+                      width={800}
+                      height={450}
                     />
                   </div>
                 </div>
@@ -261,8 +264,8 @@ export default function HomeClient() {
               </p>
             </div>
 
-            {/* Note: The 'Advanced Media' section seems redundant or outdated now. 
-                 Consider removing or revising it separately if needed. 
+            {/* Note: The 'Advanced Media' section seems redundant or outdated now.
+                 Consider removing or revising it separately if needed.
                  Keeping it for now to avoid breaking layout. */}
             <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
               <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">

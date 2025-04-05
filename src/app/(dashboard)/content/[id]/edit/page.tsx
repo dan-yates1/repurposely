@@ -25,14 +25,14 @@ interface ContentHistoryItem {
   tone: string;
   target_audience: string;
   created_at: string;
-  metadata?: Record<string, unknown>; 
+  metadata?: Record<string, unknown>;
 }
 
 export default function EditContentPage() {
   const params = useParams();
   const router = useRouter();
   const contentId = params.id as string;
-  usePageTitle(`Edit Content - ${contentId ? contentId.substring(0, 8) : ''}...`); 
+  usePageTitle(`Edit Content - ${contentId ? contentId.substring(0, 8) : ''}...`);
 
   const [contentItem, setContentItem] = useState<ContentHistoryItem | null>(null);
   const [editedContent, setEditedContent] = useState("");
@@ -76,7 +76,7 @@ export default function EditContentPage() {
     } finally {
       setLoading(false);
     }
-   
+
   }, [contentId, router]); // Removed fetchContent from dependencies
 
   useEffect(() => {
@@ -131,7 +131,42 @@ export default function EditContentPage() {
 
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="animate-pulse">
+          {/* Breadcrumb skeleton */}
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="h-4 w-20 bg-gray-200 rounded"></div>
+            <div className="h-4 w-4 bg-gray-200 rounded"></div>
+            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+            <div className="h-4 w-4 bg-gray-200 rounded"></div>
+            <div className="h-4 w-16 bg-gray-200 rounded"></div>
+          </div>
+
+          {/* Header skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+              <div className="h-8 w-64 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 w-48 bg-gray-200 rounded"></div>
+            </div>
+            <div className="flex space-x-3">
+              <div className="h-10 w-24 bg-gray-200 rounded"></div>
+              <div className="h-10 w-24 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+
+          {/* Editor skeleton */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
+            <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+            <div className="h-64 w-full bg-gray-100 rounded mb-4"></div>
+            <div className="flex justify-end space-x-3">
+              <div className="h-10 w-24 bg-gray-200 rounded"></div>
+              <div className="h-10 w-24 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -145,11 +180,11 @@ export default function EditContentPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
        <Toaster position="top-right" />
-       
+
        {/* Breadcrumbs */}
        <Breadcrumbs items={[
-          { label: "Dashboard", href: "/dashboard" }, 
-          { label: "My Content", href: "/my-content" }, 
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "My Content", href: "/my-content" },
           { label: "View", href: `/content/${contentId}` },
           { label: "Edit" }
        ]} />
@@ -172,13 +207,13 @@ export default function EditContentPage() {
                 id="repurposedContent"
                 value={editedContent}
                 // Add type for event parameter
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedContent(e.target.value)} 
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedContent(e.target.value)}
                 rows={15}
                 className="mt-1 w-full border-gray-300 rounded-md shadow-sm text-gray-700 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="Edit your repurposed content here..."
              />
           </div>
-          
+
           {/* TODO: Add fields to edit other parameters like tone, audience if needed */}
 
           {/* Action Buttons */}

@@ -67,7 +67,7 @@ export default function UpdatePasswordPage() {
       setConfirmPassword('');
       setMessage('Password updated successfully! Redirecting to dashboard...');
       toast.success('Password updated successfully!');
-      
+
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         router.push('/dashboard');
@@ -130,7 +130,7 @@ export default function UpdatePasswordPage() {
 
             <div>
               {/* Removed type="submit" again */}
-              <Button className="group relative flex w-full justify-center" disabled={loading}> 
+              <Button className="group relative flex w-full justify-center" disabled={loading}>
                 {loading && <Loader2 className="animate-spin h-5 w-5 mr-3" />}
                 Set New Password
               </Button>
@@ -138,8 +138,22 @@ export default function UpdatePasswordPage() {
           </form>
         ) : (
           <div className="text-center p-8 bg-white shadow-lg rounded-lg">
-             <p className="text-gray-600">Waiting for authentication...</p>
-             <p className="text-sm text-gray-500 mt-2">If you arrived here from a password reset email, please wait a moment.</p>
+            {loading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-6 w-3/4 bg-gray-200 rounded mx-auto"></div>
+                <div className="h-4 w-full bg-gray-200 rounded mx-auto"></div>
+                <div className="space-y-3 mt-6">
+                  <div className="h-10 w-full bg-gray-200 rounded"></div>
+                  <div className="h-10 w-full bg-gray-200 rounded"></div>
+                  <div className="h-10 w-1/2 bg-gray-200 rounded mx-auto mt-4"></div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-600">Waiting for authentication...</p>
+                <p className="text-sm text-gray-500 mt-2">If you arrived here from a password reset email, please wait a moment.</p>
+              </>
+            )}
           </div>
         )}
       </div>
