@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react"; // Import useCallback
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-// import Link from "next/link"; // Removed unused import
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; // Import Badge
-import { Twitter, Linkedin, BookOpen, Copy, Share2, Edit, CheckCircle, Loader2 } from "lucide-react"; // Add CheckCircle, Loader2
+import { Badge } from "@/components/ui/badge";
+import { Twitter, Linkedin, BookOpen, Copy, Edit, CheckCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"; // Import Breadcrumbs
-import React from 'react'; // Import React
-import Image from 'next/image'; // Import Next Image
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import React from 'react';
+import Image from 'next/image';
+import { PlatformPreviewTabs } from "@/components/ui/content-preview";
 
 // Define types for content item
 interface ContentItem {
@@ -37,6 +37,7 @@ export default function ContentView() {
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(true);
 
   usePageTitle("View Content");
 
@@ -242,12 +243,6 @@ export default function ContentView() {
           <p className="text-sm text-gray-500">Created on {formatDate(content.created_at)}</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="secondary" size="sm" className="flex items-center" onClick={() => copyToClipboard(content.repurposed_content || content.original_content)}>
-            <Copy size={16} className="mr-1" /> Copy
-          </Button>
-          <Button variant="secondary" size="sm" className="flex items-center">
-            <Share2 size={16} className="mr-1" /> Share
-          </Button>
           <Button variant="primary" size="sm" className="flex items-center" onClick={() => router.push(`/content/${content.id}/edit`)}>
             <Edit size={16} className="mr-1" /> Edit
           </Button>
@@ -285,17 +280,41 @@ export default function ContentView() {
 
       {/* Content Sections */}
       <div className="space-y-8">
-        {/* Display Generated Image */}
-        {content.generated_image_url && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Generated Image</h2>
-            <div className="relative aspect-video w-full max-w-2xl mx-auto overflow-hidden rounded-md border">
-              <Image
-                src={content.generated_image_url}
-                alt="Generated AI Image for content"
-                layout="fill"
-                objectFit="contain" // Use 'contain' to see the whole image
-              />
+        {/* Social Content Preview */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-gray-900">Platform Preview</h2>
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className="p-2 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100"
+              title={showPreview ? "Hide preview" : "Show preview"}
+            >
+              {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+
+          {showPreview && content.repurposed_content && (
+            <PlatformPreviewTabs
+              content={content.repurposed_content}
+              selectedTemplate={content.content_type || null}
+              imageUrl={content.generated_image_url}
+            />
+          )}
+        </div>
+
+        {/* Repurposed Content */}
+        {content.repurposed_content && (
+          <div className="bg-white p-6 rounded-lg text-gray-700 shadow-sm border-2 border-indigo-100">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-indigo-900">Repurposed Content</h2>
+              <Button variant="secondary" size="sm" className="text-gray-500 hover:text-indigo-600 p-1" onClick={() => copyToClipboard(content.repurposed_content)}>
+                <Copy size={16} />
+              </Button>
+            </div>
+            <div className="prose max-w-none">
+              {content.repurposed_content.split("\n").map((line, index) => (
+                <p key={index} className="mb-4">{line}</p>
+              ))}
             </div>
           </div>
         )}
@@ -316,19 +335,18 @@ export default function ContentView() {
             </div>
           </div>
         )}
-        {/* Repurposed Content */}
-        {content.repurposed_content && (
-          <div className="bg-white p-6 rounded-lg text-gray-700 shadow-sm border-2 border-indigo-100">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-indigo-900">Repurposed Content</h2>
-              <Button variant="secondary" size="sm" className="text-gray-500 hover:text-indigo-600 p-1" onClick={() => copyToClipboard(content.repurposed_content)}>
-                <Copy size={16} />
-              </Button>
-            </div>
-            <div className="prose max-w-none">
-              {content.repurposed_content.split("\n").map((line, index) => (
-                <p key={index} className="mb-4">{line}</p>
-              ))}
+
+        {/* Display Generated Image */}
+        {content.generated_image_url && (
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Generated Image</h2>
+            <div className="relative aspect-video w-full max-w-2xl mx-auto overflow-hidden rounded-md border">
+              <Image
+                src={content.generated_image_url}
+                alt="Generated AI Image for content"
+                layout="fill"
+                objectFit="contain" // Use 'contain' to see the whole image
+              />
             </div>
           </div>
         )}
