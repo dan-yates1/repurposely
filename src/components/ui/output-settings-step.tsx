@@ -29,7 +29,7 @@ export function OutputSettingsStep({
   setTargetAudience
 }: OutputSettingsStepProps) {
   const { tokenUsage } = useTokens();
-  
+
   // Tone options
   const toneOptions = [
     { id: "professional", label: "Professional" },
@@ -38,20 +38,20 @@ export function OutputSettingsStep({
     { id: "informative", label: "Informative" },
     { id: "humorous", label: "Humorous" }
   ];
-  
+
   // Content length options
   const lengthOptions = [
     { id: "short", label: "Short" },
     { id: "medium", label: "Medium" },
     { id: "long", label: "Long" }
   ];
-  
+
   // Common audience types
   const audienceSuggestions = [
-    "Professionals", 
-    "Students", 
-    "General public", 
-    "Executives", 
+    "Professionals",
+    "Students",
+    "General public",
+    "Executives",
     "Technical audience",
     "Beginners",
     "Experts"
@@ -60,11 +60,11 @@ export function OutputSettingsStep({
   const handleAudienceSuggestionClick = (suggestion: string) => {
     setTargetAudience(suggestion);
   };
-  
+
   // Filter audience suggestions based on current input
   const filteredSuggestions = audienceSuggestions.filter(
-    suggestion => 
-      suggestion.toLowerCase().includes(targetAudience.toLowerCase()) && 
+    suggestion =>
+      suggestion.toLowerCase().includes(targetAudience.toLowerCase()) &&
       suggestion.toLowerCase() !== targetAudience.toLowerCase()
   );
 
@@ -105,7 +105,7 @@ export function OutputSettingsStep({
             ))}
           </div>
         </div>
-        
+
         {/* Content length */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -135,7 +135,7 @@ export function OutputSettingsStep({
             {contentLength === "long" && "Around 500-800 words"}
           </p>
         </div>
-        
+
         {/* Target audience */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -149,7 +149,7 @@ export function OutputSettingsStep({
               placeholder="e.g., Professionals, Students, etc."
               className="w-full p-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            
+
             {/* Show suggestions when typing */}
             {targetAudience && filteredSuggestions.length > 0 && (
               <div className="absolute z-10 w-full mt-1 text-gray-700 bg-white border border-gray-200 rounded-md shadow-lg">
@@ -166,7 +166,7 @@ export function OutputSettingsStep({
             )}
           </div>
         </div>
-        
+
         {/* Keywords */}
         <div>
           <div className="flex items-center">
@@ -181,7 +181,7 @@ export function OutputSettingsStep({
               Include specific keywords
             </label>
           </div>
-          
+
           {includeKeywords && (
             <div className="mt-2">
               <textarea
@@ -193,17 +193,17 @@ export function OutputSettingsStep({
               ></textarea>
             </div>
           )}
-          
+
           <p className="mt-1 text-xs text-gray-500">
             Adding keywords helps ensure your content includes important terms
           </p>
         </div>
       </div>
-      
+
       <div className="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-100">
         <p className="text-xs text-blue-700">
-          <span className="font-medium">Token usage: </span> 
-          Content generation uses 1 token. Image generation costs 5 tokens. Content analysis costs 2 tokens.
+          <span className="font-medium">Token usage: </span>
+          Content generation uses 1 token. Image generation costs 10 tokens.
         </p>
       </div>
     </div>

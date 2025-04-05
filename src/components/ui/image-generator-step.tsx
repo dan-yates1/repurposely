@@ -79,8 +79,8 @@ export function ImageGeneratorStep({
             }
           }}
         />
-        <Label 
-          htmlFor="generate-image-checkbox" 
+        <Label
+          htmlFor="generate-image-checkbox"
           className={`text-sm font-medium leading-none ${!canGenerateImage ? 'text-gray-400 cursor-not-allowed' : 'peer-disabled:cursor-not-allowed peer-disabled:opacity-70'}`}
         >
           Generate an image with this content

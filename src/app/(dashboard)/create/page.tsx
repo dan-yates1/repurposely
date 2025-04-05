@@ -76,11 +76,16 @@ export default function Create() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [templateToPreview, setTemplateToPreview] = useState<Template | null>(null);
 
-  // Effect to get user plan (needed for premium template check)
+  // State for Recently Used Templates
+  const [recentlyUsedTemplates, setRecentlyUsedTemplates] = useState<Template[]>([]);
+  const [recentTemplatesLoading, setRecentTemplatesLoading] = useState(true);
+
+  // Effect to get user plan and recently used templates
   useEffect(() => {
-    const getUserPlan = async () => {
+    const getUserPlanAndRecentTemplates = async () => {
       if (user?.id) {
         try {
+          // Fetch user plan
           const { data: subscriptionData } = await supabase
             .from("user_subscriptions")
             .select("subscription_tier")
@@ -88,14 +93,62 @@ export default function Create() {
             .maybeSingle();
           const tier = subscriptionData?.subscription_tier || "FREE";
           setUserPlan(tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase());
+
+          // Fetch recently used templates
+          setRecentTemplatesLoading(true);
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session) {
+            const accessToken = sessionData.session.access_token;
+
+            try {
+              const freqResponse = await fetch('/api/templates/frequent', {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+              });
+
+              if (freqResponse.ok) {
+                const freqData = await freqResponse.json();
+                console.log("Frequent templates data:", freqData);
+
+                // Map the template IDs to actual template objects
+                if (freqData && freqData.length > 0) {
+                  const allTemplates = [...TEMPLATES, ...customTemplates];
+                  const mappedTemplates = freqData
+                    .map(({ template_id }: { template_id: string }) => {
+                      return allTemplates.find(t => t.id === template_id);
+                    })
+                    .filter(Boolean) as Template[];
+
+                  setRecentlyUsedTemplates(mappedTemplates.length > 0 ? mappedTemplates : TEMPLATES.slice(0, 3));
+                } else {
+                  // If no recent templates, show some defaults
+                  setRecentlyUsedTemplates(TEMPLATES.slice(0, 3));
+                }
+              } else {
+                console.error("Error fetching frequent templates:", await freqResponse.text());
+                setRecentlyUsedTemplates(TEMPLATES.slice(0, 3));
+              }
+            } catch (error) {
+              console.error("Error processing frequent templates:", error);
+              setRecentlyUsedTemplates(TEMPLATES.slice(0, 3));
+            }
+          } else {
+            setRecentlyUsedTemplates(TEMPLATES.slice(0, 3));
+          }
+          setRecentTemplatesLoading(false);
         } catch (error) {
-          console.error("Error fetching user plan:", error);
+          console.error("Error fetching user data:", error);
+          setRecentlyUsedTemplates(TEMPLATES.slice(0, 3));
+          setRecentTemplatesLoading(false);
         }
+      } else {
+        setRecentlyUsedTemplates(TEMPLATES.slice(0, 3));
+        setRecentTemplatesLoading(false);
       }
     };
-    getUserPlan();
+
+    getUserPlanAndRecentTemplates();
     loadCustomTemplates(); // Load custom templates on mount
-  }, [user]);
+  }, [user, customTemplates]);
 
   // Effect to handle pre-selection from query parameter
   useEffect(() => {
@@ -312,6 +365,9 @@ export default function Create() {
           filteredTemplates={filteredTemplates} // Pass the filtered list
           // Pass the preview handler down
           onPreviewTemplate={handlePreviewTemplate}
+          // Pass recently used templates
+          recentlyUsedTemplates={recentlyUsedTemplates}
+          recentTemplatesLoading={recentTemplatesLoading}
         />
       ),
     },
@@ -487,6 +543,7 @@ export default function Create() {
           setCurrentStep={setCurrentStep}
           onComplete={handleSubmit}
           selectedTemplate={selectedTemplate}
+          originalContent={originalContent}
         />
       </div>
 

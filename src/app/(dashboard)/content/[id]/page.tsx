@@ -153,9 +153,8 @@ export default function ContentView() {
         <div className="animate-pulse">
           {/* Breadcrumb skeleton */}
           <div className="flex items-center space-x-2 mb-6">
+            <div className="h-4 w-26 bg-gray-200 rounded"></div>
             <div className="h-4 w-20 bg-gray-200 rounded"></div>
-            <div className="h-4 w-4 bg-gray-200 rounded"></div>
-            <div className="h-4 w-32 bg-gray-200 rounded"></div>
           </div>
 
           {/* Header skeleton */}
@@ -228,7 +227,6 @@ export default function ContentView() {
 
       {/* Breadcrumbs */}
       <Breadcrumbs items={[
-          { label: "Dashboard", href: "/dashboard" },
           { label: "My Content", href: "/my-content" },
           { label: content?.content_type || "View Content" }
       ]} />

@@ -160,8 +160,6 @@ export default function EditContentPage() {
             <div className="h-4 w-20 bg-gray-200 rounded"></div>
             <div className="h-4 w-4 bg-gray-200 rounded"></div>
             <div className="h-4 w-32 bg-gray-200 rounded"></div>
-            <div className="h-4 w-4 bg-gray-200 rounded"></div>
-            <div className="h-4 w-16 bg-gray-200 rounded"></div>
           </div>
 
           {/* Header skeleton */}
@@ -209,7 +207,6 @@ export default function EditContentPage() {
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
-          { label: "Dashboard", href: "/dashboard" },
           { label: "My Content", href: "/my-content" },
           { label: "View", href: `/content/${contentId}` },
           { label: "Edit" },
